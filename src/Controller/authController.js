@@ -9,7 +9,7 @@ import { sendEmail } from "../utils/sendMail.js";
 
 
 // CANADA ID --> 39
-
+// jwt token expires in 1day
 
 dotenv.config();
 
