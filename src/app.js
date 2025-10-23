@@ -8,17 +8,24 @@ import authRoutes from "./routes/authRoutes.js";
 
 
 const app = express();
-app.use(express.json());
+
 dotenv.config();
 
 
-// Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || "*" })); // dev: * , prod: specific URL
-app.use(express.urlencoded({ extended: true }));
+
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5000",
+  credentials: true,
+}));
 app.use(cookieParser());
+app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
 
 
-app.use(verifyAuthentication);
+
+
 app.use((req, res, next) => {
 
   res.locals.user = req.user;
@@ -38,6 +45,7 @@ app.get("/", (req, res) => {
 
 
 app.use("/api/auth", authRoutes);
+app.use(verifyAuthentication);
 
 // Mount user routes
 app.use("/api/users", userRoutes);

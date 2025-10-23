@@ -14,7 +14,6 @@ model cities {
   state_code   String @db.VarChar(255)
   country_id   Int
   country_code String @db.Char(2)
-  User         User[]
 }
 
 model countries {
@@ -25,7 +24,6 @@ model countries {
   currency        String? @db.VarChar(255)
   currency_name   String? @db.VarChar(255)
   currency_symbol String? @db.VarChar(255)
-  User            User[]
 }
 
 model role {
@@ -39,28 +37,45 @@ model states {
   id         Int    @id @default(autoincrement())
   name       String @db.VarChar(255)
   country_id Int
-  User       User[]
 }
 
 model User {
-  userid          Int        @id @default(autoincrement())
-  roleid          Int?       @default(3)
-  firstname       String     @db.VarChar(50)
-  lastname        String     @db.VarChar(50)
-  email           String     @unique @db.VarChar(100)
-  passwordhash    String     @db.VarChar(255)
-  address         String?    @db.VarChar(200)
-  cityid          Int?
-  provinceid      Int?
-  countryid       Int?
-  postalcode      String?    @db.VarChar(20)
-  phoneno         String?    @db.VarChar(20)
-  isemailverified Boolean?   @default(false)
-  profilepic      String?
-  createdat       DateTime?  @default(now()) @db.Timestamp(6)
-  updatedat       DateTime?  @default(now()) @db.Timestamp(6)
-  cities          cities?    @relation(fields: [cityid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  countries       countries? @relation(fields: [countryid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  states          states?    @relation(fields: [provinceid], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  role            role?      @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
+  userid                 Int              @id @default(autoincrement())
+  roleid                 Int?             @default(3)
+  firstname              String           @db.VarChar(50)
+  lastname               String           @db.VarChar(50)
+  email                  String           @unique @db.VarChar(100)
+  passwordhash           String?          @db.VarChar(255)
+  address                String?          @db.VarChar(200)
+  canadian_provinceid    Int?
+  canadian_cityid        Int?
+  international_country  String?          @db.VarChar(100)
+  international_province String?          @db.VarChar(100)
+  international_city     String?          @db.VarChar(100)
+  postalcode             String?          @db.VarChar(20)
+  phoneno                String?          @db.VarChar(20)
+  isemailverified        Boolean?         @default(false)
+  profilepic             String?
+  createdat              DateTime?        @default(now()) @db.Timestamp(6)
+  updatedat              DateTime?        @default(now()) @db.Timestamp(6)
+  canadian_cities        canadian_cities? @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
+  canadian_states        canadian_states? @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
+  role                   role?            @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model canadian_cities {
+  canadian_city_id     Int             @id @default(autoincrement())
+  canadian_city_name   String          @db.VarChar(100)
+  canadian_province_id Int
+  User                 User[]
+  canadian_states      canadian_states @relation(fields: [canadian_province_id], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([canadian_city_name, canadian_province_id], map: "unique_city_per_province")
+}
+
+model canadian_states {
+  canadian_province_id   Int               @id @default(autoincrement())
+  canadian_province_name String            @unique(map: "unique_canadian_province_name") @db.VarChar(100)
+  User                   User[]
+  canadian_cities        canadian_cities[]
 }

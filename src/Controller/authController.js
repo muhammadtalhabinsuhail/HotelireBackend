@@ -24,7 +24,7 @@ const emailCodeStore = new Map();
 
 
 
-export const checkEmail = async (req, res) => {
+const checkEmail = async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -69,8 +69,11 @@ export const checkEmail = async (req, res) => {
 
 // email next time dubara user nhi daaala ga balka nextjs frontend ma sessionStorage ma save kra ga
 
-export const verifyCode = async (req, res) => {
+const verifyCode = async (req, res) => {
   try {
+
+    //code string ma bhejna h
+
     const { email, code } = req.body;
     const record = emailCodeStore.get(email);
 
@@ -100,6 +103,53 @@ export const verifyCode = async (req, res) => {
 
 
 
+const getCanadianProvinces = async (req, res) => {
+
+  try {
+    const provinces = await prisma.canadian_states.findMany();
+
+    if (provinces.length === 0) {
+      return res.status(404).json({ message: "No provinces found for this country" });
+    }
+
+    return res.status(200).json({
+      message: "Provinces found successfully",
+      provinces,
+    });
+
+  } catch (ex) {
+    return res.status(500).json({ message: "Internal Server Error", error: ex.message });
+  }
+};
+
+
+
+
+const getCanadianCities = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const cities = await prisma.canadian_cities.findMany({
+      where: { canadian_province_id: Number(id) }, // make sure id is numeric
+    });
+
+    if (cities.length === 0) {
+      return res.status(404).json({ message: "No Cities found for this country" });
+    }
+
+    return res.status(200).json({
+      message: "Cities found successfully",
+      cities,
+    });
+
+  } catch (ex) {
+    return res.status(500).json({ message: "Internal Server Error", error: ex.message });
+  }
+};
+
+
+
+
 
 // email next time dubara user nhi daaala ga balka nextjs frontend ma sessionStorage ma save kra ga
 
@@ -107,27 +157,29 @@ const signUp = async (req, res) => {
 
   try {
 
+
     const data = {
-      roleid: req.body.roleid, // default role
+      roleid: req.body.roleid || 3, // default role is 3
       firstname: req.body.firstname,
       lastname: req.body.lastname,
       email: req.body.email,
-      passwordhash: req.body.passwordhash,
+      passwordhash: req.body.passwordhash, // hash before saving!
       address: req.body.address,
-      cityid: req.body.cityid,
-      provinceid: req.body.provinceid,
-      countryid: req.body.countryid,
       postalcode: req.body.postalcode,
       phoneno: req.body.phoneno,
-      isemailverified: req.body.isemailverified ?? false,
-      ProfilePic: req.body.ProfilePic
+      profilepic: req.body.profilepic || null,
+      isemailverified: req.body.isemailverified, // default false until verified
+
+      // Canadian user fields
+      canadian_provinceid: req.body.canadian_provinceid,
+      canadian_cityid: req.body.canadian_cityid,
+
+      // International user fields
+      international_country: req.body.international_country,
+      international_province: req.body.international_province,
+      international_city: req.body.international_city,
     };
 
-
-    const record = emailCodeStore.get(data.email);
-    if (!record || !record.verified) {
-      return res.status(401).json({ message: "Email not verified yet" });
-    }
 
     const isUserExist = await prisma.User.findUnique(
       {
@@ -140,6 +192,14 @@ const signUp = async (req, res) => {
     if (isUserExist) {
       return res.status(400).json({ message: "User with this email already exisits" });
     }
+
+
+    const record = emailCodeStore.get(data.email);
+    if (!record || !record.verified) {
+      return res.status(401).json({ message: "Email not verified yet" });
+    }
+
+
     data.isemailverified = true;
 
     const hashedPassword = await bcrypt.hash(data.passwordhash, 10);
@@ -156,12 +216,17 @@ const signUp = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES }
     );
 
+   
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
-      maxAge: 1000 * 60 * 60, // 1 hour
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+ // 1 hour
     });
+
+
 
     // ✅ clear verified email code
     emailCodeStore.delete(data.email);
@@ -202,7 +267,7 @@ const login = async (req, res) => {
 
   if (isUserExist) {
 
-      const checkPassword = await bcrypt.compare(data.passwordhash, isUserExist.passwordhash); // true/false
+    const checkPassword = await bcrypt.compare(data.passwordhash, isUserExist.passwordhash); // true/false
 
     if (checkPassword) {
 
@@ -214,7 +279,8 @@ const login = async (req, res) => {
         httpOnly: true,
         secure: false,
         sameSite: "lax",
-        maxAge: 1000 * 60 * 60 // 1 hour
+        maxAge: 1000 * 60 * 60 * 24, // 1 day
+// 1 hour
       });
 
       // delete from temporary store
@@ -235,7 +301,7 @@ const login = async (req, res) => {
 //http://localhost:3000/api/auth/google      is url se continue wala page khula ga
 
 
-export const getGoogleLoginPage = async (req, res) => {
+const getGoogleLoginPage = async (req, res) => {
   if (req.user) return res.redirect("/");
 
   const state = generateState();
@@ -262,7 +328,7 @@ export const getGoogleLoginPage = async (req, res) => {
 
 
 
-export const handleGoogleCallback = async (req, res) => {
+const handleGoogleCallback = async (req, res) => {
   const { code, state } = req.query;
   const savedState = req.cookies.google_oauth_state;
   const codeVerifier = req.cookies.google_code_verifier;
@@ -330,6 +396,9 @@ export const handleGoogleCallback = async (req, res) => {
 
 
 
+const me = (req, res) => {
+  res.json({ user: req.user });
+};
 
 
 
@@ -369,4 +438,4 @@ const logout = async (req, res) => {
 // });
 
 
-export { signUp, login, logout, } 
+export { checkEmail, verifyCode, signUp, login, getCanadianProvinces, getCanadianCities, getGoogleLoginPage, handleGoogleCallback, me, logout } 
