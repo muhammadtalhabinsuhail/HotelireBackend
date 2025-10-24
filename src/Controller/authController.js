@@ -416,10 +416,11 @@ const logout = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     sameSite: "lax",
-    secure: false
+    secure: false,
+     path: "/",
 
   });
-  res.json({ message: "Logged out" });
+  res.json({ message: "Logged out successfully" });
 };
 
 
