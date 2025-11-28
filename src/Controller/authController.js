@@ -1,6 +1,5 @@
 import prisma from "../config/prisma.js";
 import bcrypt from "bcrypt";
-import { CreateUserSchema } from "../dto/SignUp.dto.js";
 import jwt from "jsonwebtoken";
 import { Google, generateCodeVerifier, generateState } from "arctic";
 import fetch from "node-fetch";
@@ -102,14 +101,31 @@ const verifyCode = async (req, res) => {
 
 
 
-
 const getCanadianProvinces = async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const provinces = await prisma.canadian_states.findMany();
+    let provinces;
 
-    if (provinces.length === 0) {
-      return res.status(404).json({ message: "No provinces found for this country" });
+    // If an ID is provided (example: /provinces/5)
+    if (id) {
+      const provinceId = Number(id);
+
+      if (isNaN(provinceId)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+
+      provinces = await prisma.canadian_states.findMany({
+        where: { canadian_province_id: provinceId },
+      });
+    }
+    else {
+      // If no ID, return all provinces
+      provinces = await prisma.canadian_states.findMany();
+    }
+
+    if (!provinces || provinces.length === 0) {
+      return res.status(404).json({ message: "No provinces found" });
     }
 
     return res.status(200).json({
@@ -117,10 +133,16 @@ const getCanadianProvinces = async (req, res) => {
       provinces,
     });
 
-  } catch (ex) {
-    return res.status(500).json({ message: "Internal Server Error", error: ex.message });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
+
+
+
 
 
 
@@ -216,14 +238,14 @@ const signUp = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES }
     );
 
-   
+
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24, // 1 day
- // 1 hour
+      // 1 hour
     });
 
 
@@ -255,6 +277,7 @@ const login = async (req, res) => {
     passwordhash: req.body.passwordhash
   }
 
+
   const isUserExist = await prisma.User.findUnique(
     {
       where: { email: data.email }
@@ -267,11 +290,45 @@ const login = async (req, res) => {
 
   if (isUserExist) {
 
-    const checkPassword = await bcrypt.compare(data.passwordhash, isUserExist.passwordhash); // true/false
+    let checkPassword = false;
+    //yahan forgot password ka baad verification-code se login krwa raha
+    if (data.passwordhash.length === 4 && /^\d{4}$/.test(data.passwordhash)) {
+
+      const record = emailCodeStore.get(data.email);
+      if (!record) {
+        return res.status(401).json({ message: "Code not found or expired" });
+      }
+
+      if (Date.now() > record.expires) {
+        emailCodeStore.delete(data.email);
+        return res.status(400).json({ message: "Code expired" });
+      }
+
+      if (record.code !== data.passwordhash) {
+        return res.status(401).json({ message: "Invalid verification code" });
+      }
+
+
+
+      checkPassword = true;
+
+
+
+    } else {
+      checkPassword = await bcrypt.compare(data.passwordhash, isUserExist.passwordhash); // true/false
+
+    }
+
+
+
+
+
 
     if (checkPassword) {
 
       const { passwordhash, ...userWithoutPassword } = isUserExist;
+
+
 
       const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
 
@@ -280,7 +337,6 @@ const login = async (req, res) => {
         secure: false,
         sameSite: "lax",
         maxAge: 1000 * 60 * 60 * 24, // 1 day
-// 1 hour
       });
 
       // delete from temporary store
@@ -292,10 +348,6 @@ const login = async (req, res) => {
     }
   }
 }
-
-
-
-
 
 
 //http://localhost:3000/api/auth/google      is url se continue wala page khula ga
@@ -361,31 +413,58 @@ const handleGoogleCallback = async (req, res) => {
     });
     const profile = await profileRes.json();
 
-    //YAHAN LOGIC KA HISAB SE CODE LIKHO GA
 
     // Save user if new
-    // let user = findUser(profile.id);
-    // if (!user) {
-    //   user = {
-    //     googleId: profile.id,
-    //     name: profile.name,
-    //     email: profile.email,
-    //     picture: profile.picture,
-    //   };
-    //   saveUser(user);
-    // }
+    let dbuser = await prisma.User.findUnique({ where: { email: profile.email } });
+
+
+    if (!dbuser) {
+
+      const data = {
+        roleid: 3,
+        firstname: profile.given_name,
+        lastname: profile.family_name,
+        email: profile.email,
+        profilepic: profile.picture || null,
+        isemailverified: true,
+      };
+
+      try {
+        dbuser = await prisma.User.create({ data });
+      } catch (ex) {
+        return res.status(500).json({ ex: ex.message });
+      }
+    }
+
+    const { passwordhash, ...userWithoutPassword } = dbuser;
+
+
+    const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
+
 
     // Clear cookies (security cleanup)
     res.clearCookie("google_oauth_state");
     res.clearCookie("google_code_verifier");
 
-    res.send(`
-      <h1>✅ Welcome, ${profile.name}</h1>
-      <img src="${profile.picture}" width="100" />
-      <p>Email: ${profile.email}</p>
-      <p>Google ID: ${profile.id}</p>
-      <a href="/">Back to Home</a>
-    `);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+    });
+
+    res.redirect(`http://localhost:5000/customer`);
+
+
+
+    // res.send(`
+    //   <h1>✅ Welcome, ${profile.name}</h1>
+    //   <img src="${profile.picture}" width="100" />
+    //   <p>Email: ${profile.email}</p>
+    //   <p>Google ID: ${profile.id}</p>
+    //   <a href="/">Back to Home</a>
+    // `);
   } catch (err) {
     console.error("OAuth Error:", err);
     res.status(500).send("Failed to complete Google OAuth.");
@@ -394,6 +473,45 @@ const handleGoogleCallback = async (req, res) => {
 
 
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Email is required." });
+
+  try {
+
+    const existingUser = await prisma.User.findUnique({ where: { email } });
+
+    if (!existingUser) {
+      return res.status(200).json({
+        exists: true,
+        message: "Email is not registered. Please proceed to sign up."
+      });
+    }
+
+    // otherwise, generate 4-digit code
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+
+    emailCodeStore.set(email, {
+      code,
+      expires: Date.now() + 5 * 60 * 1000 // expires in 5 min
+    });
+
+    await sendEmail(email, code);
+
+    res.status(200).json({
+      exists: false,
+      nextStep: "verifyCode", // <--- frontend will open code modal
+      message: "Verification code sent to your email."
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error.message
+    });
+  }
+
+}
 
 
 const me = (req, res) => {
@@ -405,6 +523,80 @@ const me = (req, res) => {
 
 
 
+const specificCityById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    let city;
+
+    // If an ID is provided (example: /provinces/5)
+    if (id) {
+      const cityId = Number(id);
+
+      if (isNaN(cityId)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+
+      city = await prisma.canadian_cities.findMany({
+        where: { canadian_city_id: cityId },
+      });
+    }
+
+
+    if (!city || city.length === 0) {
+      return res.status(404).json({ message: "No provinces found" });
+    }
+
+    return res.status(200).json({
+      message: "Provinces found successfully",
+      city,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+}
+
+
+const specificProvinceById = async(req, res) => {
+  const { id } = req.params;
+
+  try {
+    let province;
+
+    // If an ID is provided (example: /provinces/5)
+    if (id) {
+      const provinceId = Number(id);
+
+      if (isNaN(provinceId)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+
+      province = await prisma.canadian_states.findMany({
+        where: { canadian_province_id: provinceId },
+      });
+    }
+
+
+    if (!province || province.length === 0) {
+      return res.status(404).json({ message: "No provinces found" });
+    }
+
+    return res.status(200).json({
+      message: "Provinces found successfully",
+      province,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+}
 
 
 
@@ -417,7 +609,7 @@ const logout = async (req, res) => {
     httpOnly: true,
     sameSite: "lax",
     secure: false,
-     path: "/",
+    path: "/",
 
   });
   res.json({ message: "Logged out successfully" });
@@ -426,17 +618,7 @@ const logout = async (req, res) => {
 
 
 
-//ONLY FOR EXPLAINING PROTECTED ROUTE AUTHENTICATED ROUTE AND BELOW AUTHORIZED ROUTE
-// app.get("/api/profile", verifyAuthentication, (req, res) => {
-//   res.json({
-//     message: "Access granted",
-//     user: req.user
-//   });
-// });
-
-// app.get("/api/admin/dashboard", verifyAuthentication, requireRole([1]), (req, res) => {
-//   res.json({ message: "Welcome Admin!" });
-// });
 
 
-export { checkEmail, verifyCode, signUp, login, getCanadianProvinces, getCanadianCities, getGoogleLoginPage, handleGoogleCallback, me, logout } 
+
+export { checkEmail, verifyCode, signUp, login, forgotPassword, getCanadianProvinces, getCanadianCities, getGoogleLoginPage, handleGoogleCallback, me, logout, specificCityById, specificProvinceById } 

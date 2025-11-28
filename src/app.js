@@ -5,8 +5,8 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { verifyAuthentication } from "./middlewares/authMiddleware.js";
 import authRoutes from "./routes/authRoutes.js";
-
-
+import ownerRoutes from "./routes/ownerRoutes.js";
+import ownerPropertyRoutes from "./routes/ownerPropertyRoutes.js";
 const app = express();
 
 dotenv.config();
@@ -49,8 +49,8 @@ app.use(verifyAuthentication);
 
 // Mount user routes
 app.use("/api/users", userRoutes);
+app.use("/api/owner", ownerRoutes);
 
-
-
+app.use("/api/ownerProperty", ownerPropertyRoutes);
 
 export default app;

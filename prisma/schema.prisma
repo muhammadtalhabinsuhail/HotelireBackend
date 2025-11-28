@@ -1,10 +1,10 @@
 generator client {
   provider = "prisma-client-js"
+  // output   = "../src/generated/client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model cities {
@@ -61,6 +61,8 @@ model User {
   canadian_cities        canadian_cities? @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
   canadian_states        canadian_states? @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
   role                   role?            @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
+  ownerinfo              ownerinfo?
+  property               property[]
 }
 
 model canadian_cities {
@@ -69,6 +71,7 @@ model canadian_cities {
   canadian_province_id Int
   User                 User[]
   canadian_states      canadian_states @relation(fields: [canadian_province_id], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
+  property             property[]
 
   @@unique([canadian_city_name, canadian_province_id], map: "unique_city_per_province")
 }
@@ -78,4 +81,144 @@ model canadian_states {
   canadian_province_name String            @unique(map: "unique_canadian_province_name") @db.VarChar(100)
   User                   User[]
   canadian_cities        canadian_cities[]
+  property               property[]
+}
+
+model ownerinfo {
+  ownerid                     Int                          @id @default(autoincrement())
+  legalfullname               String                       @db.VarChar(50)
+  displayname                 String?                      @db.VarChar(50)
+  pictypeid                   Int?
+  iddocpic                    String?                      @db.VarChar(255)
+  pdftypeid                   Int?
+  residentialdocpdf           String?                      @db.VarChar(255)
+  userid                      Int?                         @unique
+  owner_residentialdocpdftype owner_residentialdocpdftype? @relation(fields: [pdftypeid], references: [pdftypeid], onDelete: NoAction, onUpdate: NoAction)
+  owner_iddocpictype          owner_iddocpictype?          @relation(fields: [pictypeid], references: [pictypeid], onDelete: NoAction, onUpdate: NoAction)
+  User                        User?                        @relation(fields: [userid], references: [userid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model owner_iddocpictype {
+  pictypeid  Int         @id @default(autoincrement())
+  pictype    String      @unique @db.VarChar(100)
+  created_at DateTime?   @default(now()) @db.Timestamp(6)
+  ownerinfo  ownerinfo[]
+}
+
+model owner_residentialdocpdftype {
+  pdftypeid  Int         @id @default(autoincrement())
+  pdftype    String      @unique @db.VarChar(100)
+  created_at DateTime?   @default(now()) @db.Timestamp(6)
+  ownerinfo  ownerinfo[]
+  property   property[]
+}
+
+model amenities {
+  amenitiesid       Int                 @id @default(autoincrement())
+  amenitiesname     String?             @db.VarChar(255)
+  propertyamenities propertyamenities[]
+}
+
+model property {
+  propertyid                  Int                          @id @default(autoincrement())
+  propertylocationid          Int?
+  canadian_province_id        Int?
+  canadian_city_id            Int?
+  address                     String?                      @db.VarChar(200)
+  postalcode                  String?                      @db.VarChar(20)
+  pdftypeid                   Int?
+  residentialdocpdf           String?                      @db.VarChar(255)
+  propertyclassificationid    Int?
+  propertytitle               String?                      @db.VarChar(255)
+  propertysubtitle            String?                      @db.VarChar(255)
+  propertymaplink             String?
+  photo1_featured             String?
+  photo2                      String?
+  photo3                      String?
+  photo4                      String?
+  photo5                      String?
+  checkintime                 String?                      @db.VarChar(50)
+  checkouttime                String?                      @db.VarChar(50)
+  houserules                  String?
+  superadminseen              Boolean?                     @default(false)
+  userid                      Int?
+  canadian_cities             canadian_cities?             @relation(fields: [canadian_city_id], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
+  canadian_states             canadian_states?             @relation(fields: [canadian_province_id], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
+  owner_residentialdocpdftype owner_residentialdocpdftype? @relation(fields: [pdftypeid], references: [pdftypeid], onDelete: NoAction, onUpdate: NoAction)
+  propertyclassification      propertyclassification?      @relation(fields: [propertyclassificationid], references: [propertyclassificationid], onDelete: NoAction, onUpdate: NoAction)
+  propertylocation            propertylocation?            @relation(fields: [propertylocationid], references: [propertylocationid], onDelete: NoAction, onUpdate: NoAction)
+  User                        User?                        @relation(fields: [userid], references: [userid], onDelete: NoAction, onUpdate: NoAction)
+  propertyamenities           propertyamenities[]
+  propertyroom                propertyroom[]
+  propertysafetyfeatures      propertysafetyfeatures[]
+  propertysharedspaces        propertysharedspaces[]
+}
+
+model propertyamenities {
+  propertyamenitiesid Int        @id @default(autoincrement())
+  amenitiesid         Int?
+  propertyid          Int?
+  features            Boolean?   @default(false)
+  amenities           amenities? @relation(fields: [amenitiesid], references: [amenitiesid], onDelete: NoAction, onUpdate: NoAction)
+  property            property?  @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model propertyclassification {
+  propertyclassificationid   Int        @id @default(autoincrement())
+  propertyclassificationname String?    @db.VarChar(255)
+  property                   property[]
+}
+
+model propertylocation {
+  propertylocationid   Int        @id @default(autoincrement())
+  propertylocationname String?    @db.VarChar(255)
+  property             property[]
+}
+
+model propertyroom {
+  propertyroomid Int       @id @default(autoincrement())
+  propertyid     Int?
+  roomtypeid     Int?
+  roomname       String?   @db.VarChar(255)
+  roomcount      Int?
+  price          Decimal?  @db.Decimal(10, 2)
+  available      Boolean?  @default(true)
+  pic1           String?
+  pic2           String?
+  property       property? @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  roomtype       roomtype? @relation(fields: [roomtypeid], references: [roomtypeid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model propertysafetyfeatures {
+  propertysafetyfeaturesid Int             @id @default(autoincrement())
+  safetyfeaturesid         Int?
+  propertyid               Int?
+  property                 property?       @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  safetyfeatures           safetyfeatures? @relation(fields: [safetyfeaturesid], references: [safetyfeaturesid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model propertysharedspaces {
+  propertysharedspacesid Int           @id @default(autoincrement())
+  sharedspacesid         Int?
+  propertyid             Int?
+  property               property?     @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  sharedspaces           sharedspaces? @relation(fields: [sharedspacesid], references: [sharedspacesid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model roomtype {
+  roomtypeid   Int            @id @default(autoincrement())
+  roomtypename String?        @db.VarChar(255)
+  propertyroom propertyroom[]
+}
+
+model safetyfeatures {
+  safetyfeaturesid       Int                      @id @default(autoincrement())
+  safetyfeaturesname     String?                  @db.VarChar(255)
+  propertysafetyfeatures propertysafetyfeatures[]
+}
+
+model sharedspaces {
+  sharedspacesid       Int                    @id @default(autoincrement())
+  sharedspacesname     String?                @db.VarChar(255)
+  propertysharedspaces propertysharedspaces[]
 }

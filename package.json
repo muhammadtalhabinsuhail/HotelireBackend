@@ -14,26 +14,34 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.17.1",
+    "@prisma/adapter-pg": "^7.0.0",
+    "@prisma/client": "^7.0.0",
     "arctic": "^3.7.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
     "cookieparser": "^0.1.0",
     "cors": "^2.8.5",
+    "db": "file:generated/prisma",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
+    "multer": "^2.0.2",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.9",
+    "pdf-lib": "^1.17.1",
+    "pg": "^8.16.3",
+    "react-day-picker": "^9.11.1",
+    "sharp": "^0.34.5",
     "storage": "^0.2.0",
     "temporary": "^1.1.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
-    "prisma": "^6.17.1"
+    "prisma": "^7.0.0"
   }
 }
