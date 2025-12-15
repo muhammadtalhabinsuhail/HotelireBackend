@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  // output   = "../src/generated/client"
 }
 
 datasource db {
@@ -116,6 +115,7 @@ model owner_residentialdocpdftype {
 model amenities {
   amenitiesid       Int                 @id @default(autoincrement())
   amenitiesname     String?             @db.VarChar(255)
+  icons             String?             @db.VarChar(80)
   propertyamenities propertyamenities[]
 }
 
@@ -142,6 +142,7 @@ model property {
   houserules                  String?
   superadminseen              Boolean?                     @default(false)
   userid                      Int?
+  AvailableStatus             Boolean?                     @default(false)
   canadian_cities             canadian_cities?             @relation(fields: [canadian_city_id], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
   canadian_states             canadian_states?             @relation(fields: [canadian_province_id], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
   owner_residentialdocpdftype owner_residentialdocpdftype? @relation(fields: [pdftypeid], references: [pdftypeid], onDelete: NoAction, onUpdate: NoAction)
@@ -160,7 +161,7 @@ model propertyamenities {
   propertyid          Int?
   features            Boolean?   @default(false)
   amenities           amenities? @relation(fields: [amenitiesid], references: [amenitiesid], onDelete: NoAction, onUpdate: NoAction)
-  property            property?  @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  property            property?  @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model propertyclassification {
@@ -185,7 +186,7 @@ model propertyroom {
   available      Boolean?  @default(true)
   pic1           String?
   pic2           String?
-  property       property? @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  property       property? @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
   roomtype       roomtype? @relation(fields: [roomtypeid], references: [roomtypeid], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -193,7 +194,7 @@ model propertysafetyfeatures {
   propertysafetyfeaturesid Int             @id @default(autoincrement())
   safetyfeaturesid         Int?
   propertyid               Int?
-  property                 property?       @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  property                 property?       @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
   safetyfeatures           safetyfeatures? @relation(fields: [safetyfeaturesid], references: [safetyfeaturesid], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -201,7 +202,7 @@ model propertysharedspaces {
   propertysharedspacesid Int           @id @default(autoincrement())
   sharedspacesid         Int?
   propertyid             Int?
-  property               property?     @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  property               property?     @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
   sharedspaces           sharedspaces? @relation(fields: [sharedspacesid], references: [sharedspacesid], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -214,11 +215,13 @@ model roomtype {
 model safetyfeatures {
   safetyfeaturesid       Int                      @id @default(autoincrement())
   safetyfeaturesname     String?                  @db.VarChar(255)
+  icons                  String?                  @db.VarChar(80)
   propertysafetyfeatures propertysafetyfeatures[]
 }
 
 model sharedspaces {
   sharedspacesid       Int                    @id @default(autoincrement())
   sharedspacesname     String?                @db.VarChar(255)
+  icons                String?                @db.VarChar(80)
   propertysharedspaces propertysharedspaces[]
 }

@@ -1,13 +1,10 @@
 import express from "express";
-import { step1, step2,step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties } from "../Controller/ownerPropertyController.js";
+import { step1, step2,step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
 import { verifyAuthentication } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 
-
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
-
-
 
 // http://localhost:3000/api/ownerProperty/step1
 
@@ -17,10 +14,6 @@ router.post(
   upload.fields([{ name: "residentialdocpdf", maxCount: 1 }]),
   step1
 );
-
-
-
-
 
 // http://localhost:3000/api/ownerProperty/fetchPropertyClassificationCategories
 
@@ -43,9 +36,6 @@ router.post(
   step2
 );
 
-
-
-
 router.post(
   "/step3",
   verifyAuthentication,
@@ -53,7 +43,8 @@ router.post(
   step3
 );
 
-
+// http://localhost:3000/api/ownerProperty/getSpecificOwnerProperties
+router.get("/getSpecificOwnerProperties/:id", getSpecificOwnerProperties);
 router.get("/roomtypes", getRoomTypes);
 router.get("/roomtypes/:id", getRoomTypes);
 router.get("/safetyfeatures", getSafetyFeatures);
@@ -62,7 +53,6 @@ router.get("/sharedspaces", getSharedSpaces);
 router.get("/sharedspaces/:id", getSharedSpaces);
 router.get("/amenities", getAmenities);
 router.get("/amenities/:id", getAmenities);
-
 router.get("/getProperties/:id",getProperties)
 router.get("/getProperties",getProperties)
 

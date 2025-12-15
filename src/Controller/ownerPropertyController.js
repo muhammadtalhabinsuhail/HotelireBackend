@@ -630,19 +630,29 @@ const getProperties = async (req, res) => {
       const property = await prisma.property.findMany({
         where: { propertyid: Number(id) },
         include: {
-          propertyclassification:true,
-          canadian_cities:true,
-          canadian_states:true,
+          propertyclassification: true,
+          canadian_cities: true,
+          canadian_states: true,
           propertyamenities: {
             include: {
               amenities: true
             }
           },
-         propertyroom: {
-          include: {
-            roomtype : true
+          propertysafetyfeatures: {
+            include: {
+              safetyfeatures: true
+            }
+          },
+          propertysharedspaces: {
+            include: {
+              sharedspaces: true
+            }
+          },
+          propertyroom: {
+            include: {
+              roomtype: true
+            }
           }
-        }
         }
       });
 
@@ -660,15 +670,25 @@ const getProperties = async (req, res) => {
 
     const properties = await prisma.property.findMany({
       include: {
-        propertyclassification:true,
+        propertyclassification: true,
         propertyamenities: {
           include: {
             amenities: true
           }
         },
+        propertysafetyfeatures: {
+          include: {
+            safetyfeatures: true
+          }
+        },
+        propertysharedspaces: {
+          include: {
+            sharedspaces: true
+          }
+        },
         propertyroom: {
           include: {
-            roomtype : true
+            roomtype: true
           }
         }
       }
@@ -692,6 +712,65 @@ const getProperties = async (req, res) => {
 
 }
 
+const getSpecificOwnerProperties = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!id) {
+      return res.status(400).json({ message: "Owner ID is required" });
+    }
+
+    const property = await prisma.property.findMany({
+      where: {  
+        userid: Number(id),
+      },
+      include: {
+        propertyclassification: true,
+        canadian_cities: true,
+        canadian_states: true,
+
+        propertyamenities: {
+          include: {
+            amenities: true
+          }
+        },
+
+        propertysafetyfeatures: {
+          include: {
+            safetyfeatures: true
+          }
+        },
+
+        propertysharedspaces: {
+          include: {
+            sharedspaces: true
+          }
+        },
+
+        propertyroom: {
+          include: {
+            roomtype: true
+          }
+        }
+      }
+    });
+
+    if (property.length === 0) {
+      return res.status(404).json({ message: "No Property was found!" });
+    }
+
+    return res.status(200).json({
+      message: "Property found successfully",
+      property,
+    });
+
+  } catch (ex) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: ex.message
+    });
+  }
+};
 
 
-export { step1, step2, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties }; 
+export { step1, step2, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties }; 
