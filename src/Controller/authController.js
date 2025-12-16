@@ -242,8 +242,10 @@ const signUp = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      // secure: false,
+      secure: NODE_ENV === "production",
+      // sameSite:'lax',
+      sameSite: NODE_ENV === "production" ? "none" : "lax",
       maxAge: 1000 * 60 * 60 * 24, // 1 day
       // 1 hour
     });
@@ -366,8 +368,9 @@ const getGoogleLoginPage = async (req, res) => {
 
   const cookieConfig = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    // secure: process.env.NODE_ENV === "production",
+      secure: NODE_ENV === "production",
+    sameSite: NODE_ENV === "production" ? "none" : "lax",
     maxAge: OAUTH_EXCHANGE_EXPIRY,
   };
 
@@ -448,8 +451,9 @@ const handleGoogleCallback = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: NODE_ENV === "production",
+      // secure: false,
+      sameSite: NODE_ENV === "production" ? "none" : "lax",
       maxAge: 1000 * 60 * 60 * 24, // 1 day
     });
 
