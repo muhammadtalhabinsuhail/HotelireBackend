@@ -369,7 +369,7 @@ const getGoogleLoginPage = async (req, res) => {
   const cookieConfig = {
     httpOnly: true,
     // secure: process.env.NODE_ENV === "production",
-      secure: NODE_ENV === "production",
+    secure: NODE_ENV === "production",
     sameSite: NODE_ENV === "production" ? "none" : "lax",
     maxAge: OAUTH_EXCHANGE_EXPIRY,
   };
@@ -564,7 +564,7 @@ const specificCityById = async (req, res) => {
 }
 
 
-const specificProvinceById = async(req, res) => {
+const specificProvinceById = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -610,11 +610,13 @@ const specificProvinceById = async(req, res) => {
 const logout = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false,
+    // sameSite: "lax",
+    // secure: false,
+    secure: NODE_ENV === "production",
+    sameSite: NODE_ENV === "production" ? "none" : "lax",
     path: "/",
-
   });
+  
   res.json({ message: "Logged out successfully" });
 };
 
