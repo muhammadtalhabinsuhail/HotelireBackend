@@ -308,11 +308,7 @@ const login = async (req, res) => {
         return res.status(401).json({ message: "Invalid verification code" });
       }
 
-
-
       checkPassword = true;
-
-
 
     } else {
       checkPassword = await bcrypt.compare(data.passwordhash, isUserExist.passwordhash); // true/false
@@ -332,9 +328,11 @@ const login = async (req, res) => {
 
       const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
 
+      const NODE_ENV = process.env.NODE_ENV || "development";
+
       res.cookie("token", token, {
         httpOnly: true,
-        secure: false,
+        secure: NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 1000 * 60 * 60 * 24, // 1 day
       });
