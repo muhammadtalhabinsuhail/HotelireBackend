@@ -25,6 +25,7 @@ app.use(cors({
     "http://localhost:5000"
   ],
   credentials: true,
+  origin: true, exposedHeaders: ["Set-Cookie"]
 }));
 
 app.use(cookieParser());
