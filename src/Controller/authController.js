@@ -432,8 +432,8 @@ const handleGoogleCallback = async (req, res) => {
 
       const data = {
         roleid: 3,
-        firstname: profile.given_name,
-        lastname: profile.family_name,
+        firstname: profile.given_name || "Unknown User",
+        lastname: profile.family_name || "User",
         email: profile.email,
         profilepic: profile.picture || null,
         isemailverified: true,
