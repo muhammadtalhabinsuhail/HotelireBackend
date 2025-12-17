@@ -393,6 +393,8 @@ const handleGoogleCallback = async (req, res) => {
   const savedState = req.cookies.google_oauth_state;
   const codeVerifier = req.cookies.google_code_verifier;
 
+  
+
   if (!code || !state || !savedState || !codeVerifier) {
     return res.status(400).send("Missing or invalid OAuth data.");
   }

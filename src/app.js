@@ -8,7 +8,7 @@ import authRoutes from "./routes/authRoutes.js";
 import ownerRoutes from "./routes/ownerRoutes.js";
 import ownerPropertyRoutes from "./routes/ownerPropertyRoutes.js";
 const app = express();
-
+app.set("trust proxy", 1);
 dotenv.config();
 
 
