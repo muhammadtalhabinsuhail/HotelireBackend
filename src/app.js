@@ -14,10 +14,19 @@ dotenv.config();
 
 
 
+// app.use(cors({
+//   origin: process.env.FRONTEND_URL || "http://localhost:5000",
+//   credentials: true,
+// }));
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5000",
+  origin: [
+    "https://hotelire.ca",
+    "http://localhost:5000"
+  ],
   credentials: true,
 }));
+
 app.use(cookieParser());
 app.use(express.json());
 
@@ -45,12 +54,13 @@ app.get("/", (req, res) => {
 
 
 app.use("/api/auth", authRoutes);
-app.use(verifyAuthentication);
+// app.use(verifyAuthentication);
 
 // Mount user routes
-app.use("/api/users", userRoutes);
-app.use("/api/owner", ownerRoutes);
 
-app.use("/api/ownerProperty", ownerPropertyRoutes);
+// Protect only required routes
+app.use("/api/users", verifyAuthentication, userRoutes);
+app.use("/api/owner", verifyAuthentication, ownerRoutes);
+app.use("/api/ownerProperty", verifyAuthentication, ownerPropertyRoutes);
 
 export default app;

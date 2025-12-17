@@ -10,8 +10,11 @@ import { sendEmail } from "../utils/sendMail.js";
 // CANADA ID --> 39
 // jwt token expires in 1day
 
+
 dotenv.config();
 
+
+const NODE_ENV = process.env.NODE_ENV || "development";
 const OAUTH_EXCHANGE_EXPIRY = 10 * 60 * 1000; // 10 minutes
 const google = new Google(
   process.env.GOOGLE_CLIENT_ID,
@@ -241,12 +244,13 @@ const signUp = async (req, res) => {
 
 
     res.cookie("token", token, {
+      //done
       httpOnly: true,
-      // secure: false,
-      secure: NODE_ENV === "production",
-      // sameSite:'lax',
-      sameSite: NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      secure: true,
+      sameSite: "none",
+      domain: ".hotelire.ca",
+      path: "/",
+      maxAge: 1000 * 60 * 60 * 24
       // 1 hour
     });
 
@@ -334,10 +338,11 @@ const login = async (req, res) => {
 
       res.cookie("token", token, {
         httpOnly: true,
-        secure: NODE_ENV === "production",
-        sameSite: NODE_ENV === "production" ? "none" : "lax",
-        // sameSite: "lax",
-        maxAge: 1000 * 60 * 60 * 24, // 1 day
+        secure: true,
+        sameSite: "none",
+        domain: ".hotelire.ca",
+        path: "/",
+        maxAge: 1000 * 60 * 60 * 24
       });
 
       // delete from temporary store
@@ -368,10 +373,11 @@ const getGoogleLoginPage = async (req, res) => {
 
   const cookieConfig = {
     httpOnly: true,
-    // secure: process.env.NODE_ENV === "production",
-    secure: NODE_ENV === "production",
-    sameSite: NODE_ENV === "production" ? "none" : "lax",
-    maxAge: OAUTH_EXCHANGE_EXPIRY,
+    secure: true,
+    sameSite: "none",
+    domain: ".hotelire.ca",
+    path: "/",
+    maxAge: OAUTH_EXCHANGE_EXPIRY
   };
 
   // Save OAuth state + verifier securely in cookies
@@ -445,19 +451,36 @@ const handleGoogleCallback = async (req, res) => {
 
 
     // Clear cookies (security cleanup)
-    res.clearCookie("google_oauth_state");
-    res.clearCookie("google_code_verifier");
+    // res.clearCookie("google_oauth_state");
+    // res.clearCookie("google_code_verifier");
+
+
+    res.clearCookie("google_oauth_state", {
+      domain: ".hotelire.ca",
+      path: "/",
+      secure: true,
+      sameSite: "none"
+    });
+
+    res.clearCookie("google_code_verifier", {
+      domain: ".hotelire.ca",
+      path: "/",
+      secure: true,
+      sameSite: "none"
+    });
+
 
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: NODE_ENV === "production",
-      // secure: false,
-      sameSite: NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      secure: true,
+      sameSite: "none",
+      domain: ".hotelire.ca",
+      path: "/",
+      maxAge: 1000 * 60 * 60 * 24
     });
 
-    res.redirect(`http://localhost:5000/customer`);
+    res.redirect(process.env.FRONTEND_URL || "http://localhost:5000");
 
 
 
@@ -610,13 +633,13 @@ const specificProvinceById = async (req, res) => {
 const logout = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    // sameSite: "lax",
-    // secure: false,
-    secure: NODE_ENV === "production",
-    sameSite: NODE_ENV === "production" ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
+    domain: ".hotelire.ca",
     path: "/",
   });
-  
+
+
   res.json({ message: "Logged out successfully" });
 };
 

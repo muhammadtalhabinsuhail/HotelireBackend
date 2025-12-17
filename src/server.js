@@ -31,12 +31,12 @@ dotenv.config();
 const PORT = process.env.PORT || 3000;
 
 // Health check / root route
-app.get("/", (req, res) => {
-  res.send(`
-    <h2>Continue with Google (Arctic + PKCE)</h2>
-    <a href="/auth/google"><button>Continue with Google</button></a>
-  `);
-});
+// app.get("/", (req, res) => {
+//   res.send(`
+//     <h2>Continue with Google (Arctic + PKCE)</h2>
+//     <a href="/auth/google"><button>Continue with Google</button></a>
+//   `);
+// });
 
 // Bind to 0.0.0.0 for cloud deployment
 app.listen(PORT, '0.0.0.0', () => {
