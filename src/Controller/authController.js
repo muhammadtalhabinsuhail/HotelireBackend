@@ -396,7 +396,7 @@ const handleGoogleCallback = async (req, res) => {
   
 
   if (!code || !state || !savedState || !codeVerifier) {
-    return res.status(400).send("Missing or invalid OAuth data.");
+    return res.status(400).send("Missing or invalid OAuth data...",savedState,codeVerifier);
   }
 
   // Verify CSRF protection
