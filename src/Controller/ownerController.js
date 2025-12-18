@@ -5,6 +5,9 @@ import prisma from "../config/prisma.js";
 
 dotenv.config();
 
+const isProd = process.env.NODE_ENV === "production";
+
+
 
 const createOwnerInfo = async (req, res) => {
   try {
@@ -56,7 +59,6 @@ const createOwnerInfo = async (req, res) => {
       role: {
         connect: { roleid: 2 }
       }
-
     };
 
 
@@ -134,35 +136,36 @@ const createOwnerInfo = async (req, res) => {
     });
 
 
-      res.clearCookie("token", {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: false,
-        path: "/",
-      });
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      domain: isProd ? ".hotelire.ca" : undefined,
+      path: "/",
+    });
 
-      const isUserExist = await prisma.User.findFirst(
-        {
-          where: { email: data2.email }
-        }
-      );
+    const isUserExist = await prisma.User.findFirst(
+      {
+        where: { email: data2.email }
+      }
+    );
 
-      console.log('isUserExist', isUserExist);
-
-
-      const { passwordhash, ...userWithoutPassword } = isUserExist;
-
-      console.log('userWithoutPassword', userWithoutPassword);
-
-      const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
+    console.log('isUserExist', isUserExist);
 
 
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        maxAge: 1000 * 60 * 60 * 24, // 1 day
-      });
+    const { passwordhash, ...userWithoutPassword } = isUserExist;
+
+    console.log('userWithoutPassword', userWithoutPassword);
+
+    const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
+
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      maxAge: 1000 * 60 * 60 * 24
+    });
 
 
     res.status(201).json({
