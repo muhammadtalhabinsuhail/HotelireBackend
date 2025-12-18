@@ -14,7 +14,9 @@ import { sendEmail } from "../utils/sendMail.js";
 dotenv.config();
 
 
-const NODE_ENV = process.env.NODE_ENV || "development";
+ const isProd = process.env.NODE_ENV === "production";
+
+
 const OAUTH_EXCHANGE_EXPIRY = 10 * 60 * 1000; // 10 minutes
 const google = new Google(
   process.env.GOOGLE_CLIENT_ID,
@@ -334,13 +336,15 @@ const login = async (req, res) => {
 
       const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
 
-      const NODE_ENV = process.env.NODE_ENV || "development";
+   
+     
+      console.log("Environment:", isProd);
 
       res.cookie("token", token, {
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        domain: ".hotelire.ca",
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
+        domain: isProd ? ".hotelire.ca" : undefined,
         path: "/",
         maxAge: 1000 * 60 * 60 * 24
       });
@@ -635,11 +639,12 @@ const specificProvinceById = async (req, res) => {
 const logout = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    domain: ".hotelire.ca",
+     secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    domain: isProd ? ".hotelire.ca" : undefined,
     path: "/",
   });
+
 
 
   res.json({ message: "Logged out successfully" });
