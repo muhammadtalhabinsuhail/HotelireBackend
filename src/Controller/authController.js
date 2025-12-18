@@ -623,6 +623,7 @@ const specificProvinceById = async (req, res) => {
 //  "/api/logout"
 
 const logout = async (req, res) => {
+  
   res.clearCookie("token", {
     httpOnly: true,
     secure: isProd,

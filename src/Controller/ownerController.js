@@ -144,6 +144,7 @@ const createOwnerInfo = async (req, res) => {
       path: "/",
     });
 
+
     const isUserExist = await prisma.User.findFirst(
       {
         where: { email: data2.email }
@@ -164,6 +165,8 @@ const createOwnerInfo = async (req, res) => {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : "lax",
+      domain: isProd ? ".hotelire.ca" : undefined,
+      path: "/",
       maxAge: 1000 * 60 * 60 * 24
     });
 
