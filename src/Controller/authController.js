@@ -14,7 +14,7 @@ import { sendEmail } from "../utils/sendMail.js";
 dotenv.config();
 
 
- const isProd = process.env.NODE_ENV === "production";
+const isProd = process.env.NODE_ENV === "production";
 
 
 const OAUTH_EXCHANGE_EXPIRY = 10 * 60 * 1000; // 10 minutes
@@ -248,9 +248,9 @@ const signUp = async (req, res) => {
     res.cookie("token", token, {
       //done
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain: ".hotelire.ca",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      domain: isProd ? ".hotelire.ca" : undefined,
       path: "/",
       maxAge: 1000 * 60 * 60 * 24
       // 1 hour
@@ -336,8 +336,8 @@ const login = async (req, res) => {
 
       const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
 
-   
-     
+
+
       console.log("Environment:", isProd);
 
       res.cookie("token", token, {
@@ -376,10 +376,9 @@ const getGoogleLoginPage = async (req, res) => {
   ]);
 
   const cookieConfig = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    domain: ".hotelire.ca",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    domain: isProd ? ".hotelire.ca" : undefined,
     path: "/",
     maxAge: OAUTH_EXCHANGE_EXPIRY
   };
@@ -397,10 +396,8 @@ const handleGoogleCallback = async (req, res) => {
   const savedState = req.cookies.google_oauth_state;
   const codeVerifier = req.cookies.google_code_verifier;
 
-  
-
   if (!code || !state || !savedState || !codeVerifier) {
-    return res.status(400).send("Missing or invalid OAuth data...",savedState,codeVerifier);
+    return res.status(400).send("Missing or invalid OAuth data...", savedState, codeVerifier);
   }
 
   // Verify CSRF protection
@@ -456,32 +453,28 @@ const handleGoogleCallback = async (req, res) => {
     const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
 
 
-    // Clear cookies (security cleanup)
-    // res.clearCookie("google_oauth_state");
-    // res.clearCookie("google_code_verifier");
-
 
     res.clearCookie("google_oauth_state", {
-      domain: ".hotelire.ca",
+      domain: isProd ? ".hotelire.ca" : undefined,
       path: "/",
-      secure: true,
-      sameSite: "none"
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax"
     });
 
     res.clearCookie("google_code_verifier", {
-      domain: ".hotelire.ca",
+      domain: isProd ? ".hotelire.ca" : undefined,
       path: "/",
-      secure: true,
-      sameSite: "none"
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax"
     });
 
 
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain: ".hotelire.ca",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      domain: isProd ? ".hotelire.ca" : undefined,
       path: "/",
       maxAge: 1000 * 60 * 60 * 24
     });
@@ -490,13 +483,6 @@ const handleGoogleCallback = async (req, res) => {
 
 
 
-    // res.send(`
-    //   <h1>✅ Welcome, ${profile.name}</h1>
-    //   <img src="${profile.picture}" width="100" />
-    //   <p>Email: ${profile.email}</p>
-    //   <p>Google ID: ${profile.id}</p>
-    //   <a href="/">Back to Home</a>
-    // `);
   } catch (err) {
     console.error("OAuth Error:", err);
     res.status(500).send("Failed to complete Google OAuth.");
@@ -639,7 +625,7 @@ const specificProvinceById = async (req, res) => {
 const logout = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-     secure: isProd,
+    secure: isProd,
     sameSite: isProd ? "none" : "lax",
     domain: isProd ? ".hotelire.ca" : undefined,
     path: "/",

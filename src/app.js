@@ -34,10 +34,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-
-
 app.use((req, res, next) => {
-
   res.locals.user = req.user;
   return next();
 });
@@ -46,11 +43,6 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
   res.send("API is working ✅");
 });
-
-
-
-
-
 
 
 
