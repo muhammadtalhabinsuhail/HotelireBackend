@@ -14,8 +14,8 @@ router.get("/google", getGoogleLoginPage);
 router.get("/google/callback", handleGoogleCallback);
 router.get("/getCanadianProvinces/:id", getCanadianProvinces);
 router.get("/getCanadianProvinces", getCanadianProvinces);
-router.get("/getCanadianCities/:id", getCanadianCities);
-router.get("/specificCityById/:id", specificCityById);
+router.get("/getCanadianCities/:id", getCanadianCities);  //by province id
+router.get("/specificCityById/:id", specificCityById);  
 router.get("/specificProvinceById/:id", specificProvinceById);
 router.get('/me', verifyAuthentication, me);
 router.post('/forgotPassword', forgotPassword);

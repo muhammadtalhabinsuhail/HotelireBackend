@@ -1,5 +1,5 @@
 import express from "express";
-import { step1, step2,step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
+import { step1, step2, getPropertyAmenities, getPropertySharedSpaces, getPropertySafetyFeatures, step3, fetchPropertyClassificationCategories, isRoomAvailableinProperty, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
 import { verifyAuthentication } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 
@@ -22,7 +22,7 @@ router.get("/fetchPropertyClassificationCategories/:id", fetchPropertyClassifica
 
 
 // http://localhost:3000/api/ownerProperty/step2
-      
+
 router.post(
   "/step2",
   verifyAuthentication,
@@ -35,6 +35,19 @@ router.post(
   ]),
   step2
 );
+
+router.post(
+  "/isRoomAvailableinProperty",
+  verifyAuthentication,
+  isRoomAvailableinProperty
+);
+
+
+router.post("/getPropertyAmenities", verifyAuthentication, getPropertyAmenities);
+router.post("/getPropertySafetyFeatures", verifyAuthentication, getPropertySafetyFeatures);
+router.post("/getPropertySharedSpaces", verifyAuthentication, getPropertySharedSpaces);
+
+
 
 router.post(
   "/step3",
@@ -53,7 +66,7 @@ router.get("/sharedspaces", getSharedSpaces);
 router.get("/sharedspaces/:id", getSharedSpaces);
 router.get("/amenities", getAmenities);
 router.get("/amenities/:id", getAmenities);
-router.get("/getProperties/:id",getProperties)
-router.get("/getProperties",getProperties)
+router.get("/getProperties/:id", getProperties)
+router.get("/getProperties", getProperties)
 
 export default router;

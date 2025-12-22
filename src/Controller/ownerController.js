@@ -2,6 +2,7 @@ import { uploadImageToCloudinary, uploadPdfToCloudinary } from "../middlewares/u
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
+import { ca } from "react-day-picker/locale";
 
 dotenv.config();
 
@@ -24,7 +25,7 @@ const createOwnerInfo = async (req, res) => {
       iddocpic: null,
       residentialdocpdf: null,
 
-      owner_iddocpictype: {
+      owner_iddocpictype: { 
         connect: {
           pictypeid: parseInt(req.body.idType),
         }
@@ -135,6 +136,32 @@ const createOwnerInfo = async (req, res) => {
       data: data2,
     });
 
+
+
+
+    const findpropertywhereilive = await prisma.property.findFirst({
+      where: {
+        propertylocationid: 1,
+        address: req.user.user.address,
+        postalcode: req.user.user.postalcode,
+        userid: req.user.user.userid,
+        canadian_city_id: req.user.user.canadian_cityid,
+        canadian_province_id: req.user.user.canadian_provinceid
+      }
+    });
+
+    if(findpropertywhereilive){
+      const updatepropertywhereilive = await prisma.property.update({
+        where: { propertyid: findpropertywhereilive.propertyid },
+        data: {
+          canadian_city_id:data2.canadian_cities.connect.canadian_city_id,
+          canadian_province_id:data2.canadian_states.connect.canadian_province_id,
+          address:data2.address,
+          postalcode:data2.postalcode
+        }});
+          
+
+    }
 
     res.clearCookie("token", {
       httpOnly: true,

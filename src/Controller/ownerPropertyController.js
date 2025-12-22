@@ -218,9 +218,11 @@ const step1 = async (req, res) => {
     }
 
 
+
     const data = {
       address: req.body.address,
       postalcode: req.body.postalcode,
+      prevpdfurl: req.body.prevpdfurl,
 
       owner_residentialdocpdftype: {
         connect: { pdftypeid: Number(req.body.pdftypeid) },
@@ -243,22 +245,47 @@ const step1 = async (req, res) => {
       },
     };
 
+
+
+
+
+    const rawPropertyId = req.body.propertyid;
+
+    const propertyid =
+      rawPropertyId === null || rawPropertyId === undefined || rawPropertyId === ""
+        ? null
+        : Number(rawPropertyId);
+
+
+    console.log(data, "DATAAAAAA", propertyid);
+
     const locationId = Number(req.body.propertylocationid);
 
 
-    const ispropertyExists = await prisma.property.findFirst({
-      where: {
-        address: data.address,
-        postalcode: data.postalcode,
-        userid: req.user.user.userid
-      }
-    });
+    var ispropertyExists;
+
+    if (propertyid && propertyid != 0) {
+      ispropertyExists = await prisma.property.findFirst({
+        where: {
+          propertyid: propertyid
+        }
+      });
+
+    } else {
+      ispropertyExists = await prisma.property.findFirst({
+        where: {
+          address: data.address,
+          postalcode: data.postalcode,
+          userid: req.user.user.userid
+        }
+      });
+    }
 
 
-    if (locationId === 2) {
+    if (locationId === 2 && !data.prevpdfurl) {
       const pdfDoc = req.files?.residentialdocpdf?.[0];
 
-      if (!pdfDoc) {
+      if (!pdfDoc && !propertyid) {
         return res.status(400).json({ message: "Residential PDF is required" });
       }
 
@@ -280,24 +307,45 @@ const step1 = async (req, res) => {
       };
     }
 
-
-    console.log("Step 1 DATA:", data);
-
-
-
-    console.log("Prisma Models:", Object.keys(prisma));
+    if (propertyid && propertyid !== 0 && req.body.prevpdfurl) {
+      data.residentialdocpdf = req.body.prevpdfurl;
+    }
 
 
+    const { prevpdfurl, ...datawithouturl } = data;
 
 
-    if (ispropertyExists) {
+
+
+    console.log("Step 1 DATA:", datawithouturl);
+
+
+
+    if (ispropertyExists && propertyid && propertyid != 0) {
+      const answer = await prisma.property.update(
+        {
+          where: {
+            propertyid: propertyid
+          },
+          data: { ...datawithouturl },
+        }
+      )
+      return res.status(200).json({
+        message: "This property already exists. Your changes have been saved.",
+        data: answer,
+      });
+    }
+
+
+
+    if (ispropertyExists) {   //according to address and postal code
 
       const answer = await prisma.property.update(
         {
           where: {
             propertyid: ispropertyExists.propertyid
           },
-          data: { ...data },
+          data: { ...datawithouturl },
         }
       )
 
@@ -310,7 +358,14 @@ const step1 = async (req, res) => {
     }
 
 
-    const rep = await prisma.property.create({ data });
+
+
+
+
+
+
+
+    const rep = await prisma.property.create({ data: { ...datawithouturl } });
 
 
 
@@ -392,38 +447,87 @@ const step2 = async (req, res) => {
     }
 
 
-    const photo1_featured = req.files?.photo1_featured?.[0];
-    const photo2 = req.files?.photo2?.[0] || null;
-    const photo3 = req.files?.photo3?.[0] || null;
-    const photo4 = req.files?.photo4?.[0] || null;
-    const photo5 = req.files?.photo5?.[0] || null;
+    // const photo1_featured = req.files?.photo1_featured?.[0];
+    // const photo2 = req.files?.photo2?.[0] || null;
+    // const photo3 = req.files?.photo3?.[0] || null;
+    // const photo4 = req.files?.photo4?.[0] || null;
+    // const photo5 = req.files?.photo5?.[0] || null;
 
-    if (!photo1_featured) {
-      return res.status(400).json({ message: "Atleast, Featured photo is required" });
-    }
+    const photo1_featured_file = req.files?.photo1_featured?.[0] || null;
+    const photo2_file = req.files?.photo2?.[0] || null;
+    const photo3_file = req.files?.photo3?.[0] || null;
+    const photo4_file = req.files?.photo4?.[0] || null;
+    const photo5_file = req.files?.photo5?.[0] || null;
+
+    // URLs from frontend for unchanged photos
+    const photo1_featured_url = req.body.photo1_featured || null;
+    const photo2_url = req.body.photo2 || null;
+    const photo3_url = req.body.photo3 || null;
+    const photo4_url = req.body.photo4 || null;
+    const photo5_url = req.body.photo5 || null;
 
 
-    const uploadIfValid = async (file) => {
-      if (!file) return null;
+
+
+
+    // if (!photo1_featured) {
+    //   return res.status(400).json({ message: "Atleast, Featured photo is required" });
+    // }
+
+
+    // const uploadIfValid = async (file) => {
+    //   if (!file) return null;
+
+    //   if (file.size > 1 * 1024 * 1024) {
+    //     return res.status(400).json({ message: "Image size must be less than 1MB" });
+
+    //   }
+
+    //   return await uploadImageToCloudinary(file.buffer, file.originalname);
+    // };
+
+
+
+
+    const uploadIfValid = async (file, existingUrl) => {
+      if (!file) return existingUrl || null; // <-- fallback to existing URL
 
       if (file.size > 1 * 1024 * 1024) {
         return res.status(400).json({ message: "Image size must be less than 1MB" });
-
       }
 
       return await uploadImageToCloudinary(file.buffer, file.originalname);
     };
 
-    data.photo1_featured = await uploadIfValid(photo1_featured);
-    data.photo2 = await uploadIfValid(photo2);
-    data.photo3 = await uploadIfValid(photo3);
-    data.photo4 = await uploadIfValid(photo4);
-    data.photo5 = await uploadIfValid(photo5);
+
+    // data.photo1_featured = await uploadIfValid(photo1_featured);
+    // data.photo2 = await uploadIfValid(photo2);
+    // data.photo3 = await uploadIfValid(photo3);
+    // data.photo4 = await uploadIfValid(photo4);
+    // data.photo5 = await uploadIfValid(photo5);
+
+
+    data.photo1_featured = await uploadIfValid(photo1_featured_file, photo1_featured_url);
+
+    if (!data.photo1_featured) {
+      return res.status(400).json({ message: "At least, Featured photo is required" });
+    }
+
+
+    data.photo2 = await uploadIfValid(photo2_file, photo2_url);
+    data.photo3 = await uploadIfValid(photo3_file, photo3_url);
+    data.photo4 = await uploadIfValid(photo4_file, photo4_url);
+    data.photo5 = await uploadIfValid(photo5_file, photo5_url);
+
+
 
     const updatedProperty = await prisma.property.update({
       where: { propertyid: reply.propertyid },
       data: data
     });
+
+    console.log(data);
+
 
     return res.status(200).json({
       message: "Step 2 completed successfully!",
@@ -454,12 +558,149 @@ const uploadIfValid = async (file) => {
 
 
 
+
+
+const isRoomAvailableinProperty = async (req, res) => {
+  try {
+    const { PropertyId } = req.body;
+
+
+    const room = await prisma.propertyroom.findFirst({
+      where: { propertyid: Number(PropertyId) },
+    });
+
+    return res.json({
+      isAvailable: !!room,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error checking room availability",
+      error: error.message,
+    });
+  }
+};
+
+
+
+const getPropertyAmenities = async (req, res) => {
+  try {
+    const { propertyid } = req.body;
+
+    if (!propertyid) {
+      return res.status(400).json({ message: "PropertyId is required" });
+    }
+
+    const amenities = await prisma.propertyamenities.findMany({
+      where: {
+        propertyid: Number(propertyid),
+      },
+      select: {
+        amenitiesid: true,
+        features: true, // ✅ from propertyamenities
+        amenities: {
+          select: {
+            amenitiesid: true,
+            amenitiesname: true,
+            icons: true,
+          },
+        },
+      },
+    });
+
+    // 🔁 flatten response for frontend
+    const response = amenities.map(a => ({
+      amenitiesid: a.amenities?.amenitiesid,
+      amenitiesname: a.amenities?.amenitiesname,
+      icons: a.amenities?.icons,
+      features: a.features ?? false,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: response,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
+  }
+};
+
+
+const getPropertySafetyFeatures = async (req, res) => {
+  try {
+    const { propertyid } = req.body;
+
+    if (!propertyid) {
+      return res.status(400).json({ message: "PropertyId is required" });
+    }
+
+    const safetyFeatures = await prisma.propertysafetyfeatures.findMany({
+      where: {
+        propertyid: Number(propertyid),
+      },
+      include: {
+        safetyfeatures: {
+          select: {
+            safetyfeaturesid: true,
+            safetyfeaturesname: true,
+            icons: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: safetyFeatures.map(s => s.safetyfeatures),
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+
+const getPropertySharedSpaces = async (req, res) => {
+  try {
+    const { propertyid } = req.body;
+
+    if (!propertyid) {
+      return res.status(400).json({ message: "PropertyId is required" });
+    }
+
+    const sharedSpaces = await prisma.propertysharedspaces.findMany({
+      where: {
+        propertyid: Number(propertyid),
+      },
+      include: {
+        sharedspaces: {
+          select: {
+            sharedspacesid: true,
+            sharedspacesname: true,
+            icons: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: sharedSpaces.map(s => s.sharedspaces),
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+
 const step3 = async (req, res) => {
 
   let rooms = req.body.rooms;
-  console.log("Rooms received:", rooms);
-  console.log("Room count:", rooms.length);
-
 
   if (!req.user || req.user.user.roleid != 2) {
     return res.status(401).json({ message: "User is not Signed In or Unauthorized" })
@@ -508,13 +749,30 @@ const step3 = async (req, res) => {
       }
     });
 
-    console.log("Final rooms:", rooms);
+   
+
+    // ✅ Detect if rooms were actually sent with meaningful data
+    const hasRoomsPayload =
+      Array.isArray(rooms) &&
+      rooms.length > 0 &&
+      rooms.some(room =>
+        room?.name ||
+        room?.roomtypeid ||
+        room?.count ||
+        room?.price ||
+        room?.image1 ||
+        room?.image2
+      );
+
+
 
     const roomIndexes = new Set();
 
     const roomCount = roomIndexes.size;
 
-    const propertyid = Number(data.propertyid)
+    const propertyid = Number(req.body.propertyid)
+
+
     const userid = req.user.user.userid
 
     if (!propertyid) {
@@ -541,46 +799,46 @@ const step3 = async (req, res) => {
     console.log("all rooms object", rooms);
 
     let number = 1;
+    if (hasRoomsPayload) {
+      for (const room of rooms) {
+        const pic1Url = await uploadIfValid(room.image1)
+        const pic2Url = await uploadIfValid(room.image2)
 
-    for (const room of rooms) {
-      const pic1Url = await uploadIfValid(room.image1)
-      const pic2Url = await uploadIfValid(room.image2)
-
-      const existingRoom = await prisma.propertyroom.findFirst({
-        where: { propertyid, roomname: room.name }
-      })
-
-      console.log(number, "room", rooms);
-      number++;
-
-      if (existingRoom) {
-        await prisma.propertyroom.update({
-          where: { propertyroomid: existingRoom.propertyroomid },
-          data: {
-            roomtypeid: Number(room.roomtypeid),
-            roomcount: Number(room.count),
-            price: Number(room.price),
-            pic1: pic1Url || existingRoom.pic1,
-            pic2: pic2Url || existingRoom.pic2
-          }
+        const existingRoom = await prisma.propertyroom.findFirst({
+          where: { propertyid, roomname: room.name }
         })
-      }
-      else {
-        await prisma.propertyroom.create({
-          data: {
-            propertyid,
-            roomtypeid: Number(room.roomtypeid),
-            roomname: room.name,
-            roomcount: Number(room.count),
-            price: Number(room.price),
-            pic1: pic1Url,
-            pic2: pic2Url,
-            available: true
-          }
-        })
+
+        console.log(number, "room", rooms);
+        number++;
+
+        if (existingRoom) {
+          await prisma.propertyroom.update({
+            where: { propertyroomid: existingRoom.propertyroomid },
+            data: {
+              roomtypeid: Number(room.roomtypeid),
+              roomcount: Number(room.count),
+              price: Number(room.price),
+              pic1: pic1Url || existingRoom.pic1,
+              pic2: pic2Url || existingRoom.pic2
+            }
+          })
+        }
+        else {
+          await prisma.propertyroom.create({
+            data: {
+              propertyid,
+              roomtypeid: Number(room.roomtypeid),
+              roomname: room.name,
+              roomcount: Number(room.count),
+              price: Number(room.price),
+              pic1: pic1Url,
+              pic2: pic2Url,
+              available: true
+            }
+          })
+        }
       }
     }
-
     await prisma.propertyamenities.deleteMany({ where: { propertyid } })
 
     for (const id of data.availableAmenitiesIds) {
@@ -721,7 +979,7 @@ const getSpecificOwnerProperties = async (req, res) => {
     }
 
     const property = await prisma.property.findMany({
-      where: {  
+      where: {
         userid: Number(id),
       },
       include: {
@@ -773,4 +1031,4 @@ const getSpecificOwnerProperties = async (req, res) => {
 };
 
 
-export { step1, step2, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties }; 
+export { step1, step2, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties }; 
