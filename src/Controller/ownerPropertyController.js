@@ -766,6 +766,9 @@ const step3 = async (req, res) => {
 
 
 
+
+
+
     const roomIndexes = new Set();
 
     const roomCount = roomIndexes.size;
