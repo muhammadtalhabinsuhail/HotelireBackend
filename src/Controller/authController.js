@@ -5,6 +5,8 @@ import { Google, generateCodeVerifier, generateState } from "arctic";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import { sendEmail } from "../utils/sendMail.js";
+import { sendWelcomeHostEmail } from "../utils/ownerWelcomeMail.js";
+
 
 
 // CANADA ID --> 39
@@ -261,11 +263,19 @@ const signUp = async (req, res) => {
     // ✅ clear verified email code
     emailCodeStore.delete(data.email);
 
+    if (data.roleid === 2) {
+      await sendWelcomeHostEmail({
+        to: data.email,
+        firstName: data.firstname,
+      });
+    }
+
     return res.status(201).json({
       message: "User created successfully",
       data: user,
     });
   } catch (ex) {
+     console.log(ex);
     return res.status(500).json({ ex: error.message });
   }
 

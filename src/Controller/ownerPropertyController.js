@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
 
+import { sendWelcomeHostEmail } from "../utils/ownerWelcomeMail.js";
 
 
 
@@ -608,6 +609,7 @@ const getPropertyAmenities = async (req, res) => {
       },
     });
 
+
     // 🔁 flatten response for frontend
     const response = amenities.map(a => ({
       amenitiesid: a.amenities?.amenitiesid,
@@ -749,7 +751,7 @@ const step3 = async (req, res) => {
       }
     });
 
-   
+
 
     // ✅ Detect if rooms were actually sent with meaningful data
     const hasRoomsPayload =
@@ -886,6 +888,16 @@ const getProperties = async (req, res) => {
 
   try {
 
+    console.log(req.user.user, "USER IN GET PROPERTIES");
+
+   
+    
+    await sendWelcomeHostEmail({
+      to: req.user.user.email,
+      firstName: req.user.user.firstname,
+    });
+
+
     if (id) {
       // NOTE KRLO KA IS MA SIRF FEATURED WALA AMENITIES RETURN HONGA BHAI JAAN
       const property = await prisma.property.findMany({
@@ -967,6 +979,7 @@ const getProperties = async (req, res) => {
 
 
   } catch (ex) {
+    console.log(ex);
     return res.status(500).json({ message: "Internal Server Error", error: ex.message });
   }
 
