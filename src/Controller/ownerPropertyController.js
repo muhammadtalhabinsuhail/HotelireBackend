@@ -888,16 +888,7 @@ const getProperties = async (req, res) => {
 
   try {
 
-    console.log(req.user.user, "USER IN GET PROPERTIES");
-
-   
     
-    await sendWelcomeHostEmail({
-      to: req.user.user.email,
-      firstName: req.user.user.firstname,
-    });
-
-
     if (id) {
       // NOTE KRLO KA IS MA SIRF FEATURED WALA AMENITIES RETURN HONGA BHAI JAAN
       const property = await prisma.property.findMany({
