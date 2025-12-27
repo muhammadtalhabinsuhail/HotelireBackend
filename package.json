@@ -37,6 +37,7 @@
     "react-day-picker": "^9.11.1",
     "sharp": "^0.34.5",
     "storage": "^0.2.0",
+    "stripe": "^20.1.0",
     "temporary": "^1.1.0",
     "zod": "^4.1.12"
   },

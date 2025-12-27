@@ -7,6 +7,9 @@ import { verifyAuthentication } from "./middlewares/authMiddleware.js";
 import authRoutes from "./routes/authRoutes.js";
 import ownerRoutes from "./routes/ownerRoutes.js";
 import ownerPropertyRoutes from "./routes/ownerPropertyRoutes.js";
+import bookingpayment from "./routes/bookingpayment.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
+import ownerBooking from "./routes/ownerBookingRoutes.js";
 const app = express();
 app.set("trust proxy", 1);
 dotenv.config();
@@ -49,7 +52,15 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 // app.use(verifyAuthentication);
 
-// Mount user routes
+app.use("/api/stripe",verifyAuthentication, bookingpayment);
+
+app.use("/api/booking",verifyAuthentication, bookingRoutes);
+
+
+// Owner Booking ko details show krna ka lia
+ app.use("/api/owner/bookings", verifyAuthentication,ownerBooking);
+ 
+ 
 
 // Protect only required routes
 app.use("/api/users", verifyAuthentication, userRoutes);

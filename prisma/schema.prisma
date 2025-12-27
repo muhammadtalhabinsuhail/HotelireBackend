@@ -6,25 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-model cities {
-  id           Int    @id @default(autoincrement())
-  name         String @db.VarChar(255)
-  state_id     Int
-  state_code   String @db.VarChar(255)
-  country_id   Int
-  country_code String @db.Char(2)
-}
-
-model countries {
-  id              Int     @id @default(autoincrement())
-  name            String  @db.VarChar(100)
-  phonecode       String? @db.VarChar(255)
-  capital         String? @db.VarChar(255)
-  currency        String? @db.VarChar(255)
-  currency_name   String? @db.VarChar(255)
-  currency_symbol String? @db.VarChar(255)
-}
-
 model role {
   roleid     Int       @id @default(autoincrement())
   rolename   String    @unique @db.VarChar(100)
@@ -60,6 +41,7 @@ model User {
   canadian_cities        canadian_cities? @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
   canadian_states        canadian_states? @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
   role                   role?            @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
+  booking                booking[]
   ownerinfo              ownerinfo?
   property               property[]
 }
@@ -143,6 +125,7 @@ model property {
   superadminseen              Boolean?                     @default(false)
   userid                      Int?
   AvailableStatus             Boolean?                     @default(false)
+  booking                     booking[]
   canadian_cities             canadian_cities?             @relation(fields: [canadian_city_id], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
   canadian_states             canadian_states?             @relation(fields: [canadian_province_id], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
   owner_residentialdocpdftype owner_residentialdocpdftype? @relation(fields: [pdftypeid], references: [pdftypeid], onDelete: NoAction, onUpdate: NoAction)
@@ -177,17 +160,19 @@ model propertylocation {
 }
 
 model propertyroom {
-  propertyroomid Int       @id @default(autoincrement())
-  propertyid     Int?
-  roomtypeid     Int?
-  roomname       String?   @db.VarChar(255)
-  roomcount      Int?
-  price          Decimal?  @db.Decimal(10, 2)
-  available      Boolean?  @default(true)
-  pic1           String?
-  pic2           String?
-  property       property? @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
-  roomtype       roomtype? @relation(fields: [roomtypeid], references: [roomtypeid], onDelete: NoAction, onUpdate: NoAction)
+  propertyroomid    Int                 @id @default(autoincrement())
+  propertyid        Int?
+  roomtypeid        Int?
+  roomname          String?             @db.VarChar(255)
+  roomcount         Int?
+  price             Decimal?            @db.Decimal(10, 2)
+  available         Boolean?            @default(true)
+  pic1              String?
+  pic2              String?
+  booking_room      booking_room[]
+  property          property?           @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
+  roomtype          roomtype?           @relation(fields: [roomtypeid], references: [roomtypeid], onDelete: NoAction, onUpdate: NoAction)
+  room_availability room_availability[]
 }
 
 model propertysafetyfeatures {
@@ -224,4 +209,78 @@ model sharedspaces {
   sharedspacesname     String?                @db.VarChar(255)
   icons                String?                @db.VarChar(80)
   propertysharedspaces propertysharedspaces[]
+}
+
+model LocalTest {
+  Id          Int      @id
+  demagKharab String[]
+}
+
+model TestingLiveTable {
+  id       Int     @id @default(autoincrement())
+  datatest String?
+}
+
+model booking {
+  bookingid         Int                 @id @default(autoincrement())
+  userid            Int?
+  propertyid        Int?
+  checkin_date      DateTime            @db.Date
+  checkout_date     DateTime            @db.Date
+  adults            Int?                @default(1)
+  children          Int?                @default(0)
+  total_guests      Int?                @default(dbgenerated("(adults + children)"))
+  total_nights      Int
+  total_amount      Decimal             @db.Decimal(10, 2)
+  booking_status    String?             @default("PENDING") @db.VarChar(30)
+  created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?           @default(now()) @db.Timestamp(6)
+  property          property?           @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  User              User?               @relation(fields: [userid], references: [userid], onDelete: NoAction, onUpdate: NoAction)
+  booking_room      booking_room[]
+  payment           payment[]
+  room_availability room_availability[]
+}
+
+model booking_room {
+  bookingroomid  Int           @id @default(autoincrement())
+  bookingid      Int?
+  propertyroomid Int?
+  room_price     Decimal       @db.Decimal(10, 2)
+  room_count     Int
+  subtotal       Decimal       @db.Decimal(10, 2)
+  booking        booking?      @relation(fields: [bookingid], references: [bookingid], onDelete: Cascade, onUpdate: NoAction)
+  propertyroom   propertyroom? @relation(fields: [propertyroomid], references: [propertyroomid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model payment {
+  paymentid                Int             @id @default(autoincrement())
+  bookingid                Int?
+  paymentmethodid          Int?
+  amount                   Decimal         @db.Decimal(10, 2)
+  currency                 String?         @default("USD") @db.VarChar(10)
+  stripe_payment_intent_id String?         @db.VarChar(255)
+  stripe_charge_id         String?         @db.VarChar(255)
+  payment_status           String?         @default("PENDING") @db.VarChar(30)
+  paid_at                  DateTime?       @db.Timestamp(6)
+  created_at               DateTime?       @default(now()) @db.Timestamp(6)
+  booking                  booking?        @relation(fields: [bookingid], references: [bookingid], onDelete: NoAction, onUpdate: NoAction)
+  payment_method           payment_method? @relation(fields: [paymentmethodid], references: [paymentmethodid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model payment_method {
+  paymentmethodid Int       @id @default(autoincrement())
+  method_name     String?   @unique @db.VarChar(50)
+  payment         payment[]
+}
+
+model room_availability {
+  availabilityid Int           @id @default(autoincrement())
+  bookingid      Int?
+  propertyroomid Int?
+  booked_date    DateTime      @db.Date
+  rooms_booked   Int
+  created_at     DateTime?     @default(now()) @db.Timestamp(6)
+  booking        booking?      @relation(fields: [bookingid], references: [bookingid], onDelete: Cascade, onUpdate: NoAction)
+  propertyroom   propertyroom? @relation(fields: [propertyroomid], references: [propertyroomid], onDelete: NoAction, onUpdate: NoAction)
 }

@@ -284,11 +284,16 @@ const step1 = async (req, res) => {
 
 
     if (locationId === 2 && !data.prevpdfurl) {
-      const pdfDoc = req.files?.residentialdocpdf?.[0];
+      const pdfDoc = req.files?.residentialdocpdf?.[0] || null;
 
       if (!pdfDoc && !propertyid) {
         return res.status(400).json({ message: "Residential PDF is required" });
       }
+
+      if (pdfDoc && pdfDoc.mimetype !== "application/pdf") {
+        return res.status(400).json({ message: "Only PDF files are allowed" });
+      }
+
 
       if (pdfDoc.size > 3 * 1024 * 1024) {
         return res.status(400).json({ message: "PDF size must be less than 3MB" });
@@ -888,7 +893,7 @@ const getProperties = async (req, res) => {
 
   try {
 
-    
+
     if (id) {
       // NOTE KRLO KA IS MA SIRF FEATURED WALA AMENITIES RETURN HONGA BHAI JAAN
       const property = await prisma.property.findMany({
