@@ -59,7 +59,7 @@ app.use("/api/booking",verifyAuthentication, bookingRoutes);
 
 // Owner Booking ko details show krna ka lia
  app.use("/api/owner/bookings", verifyAuthentication,ownerBooking);
- 
+
  
 
 // Protect only required routes

@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
 import { ca } from "react-day-picker/locale";
+import { normalizeCanadianPhone } from "../utils/ReusableFunction/normalizeCanadianPhone.js";
 
 dotenv.config();
 
@@ -44,11 +45,13 @@ const createOwnerInfo = async (req, res) => {
       }
     };
 
+    const perfect_phone = normalizeCanadianPhone(req.body.phone);
+
     const data2 = {
       email: req.body.email,
       address: req.body.address,
       postalcode: req.body.postalCode,
-      phoneno: req.body.phone,
+      phoneno:perfect_phone,
 
       canadian_states: {
         connect: { canadian_province_id: parseInt(req.body.canadian_provinceid) }

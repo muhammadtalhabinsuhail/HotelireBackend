@@ -1,4 +1,5 @@
-  import prisma from "../config/prisma.js";
+  import { email } from "zod";
+import prisma from "../config/prisma.js";
 
 
 // This function is called after Stripe payment succeeds
@@ -46,102 +47,7 @@ const createBooking = async (req, res) => {
 
 
 
-    // Start transaction for atomicity
-    // const booking = await prisma.$transaction(async (tx) => {
-    //   // 1. Create booking with status "CONFIRMED"
-    //   const newBooking = await tx.booking.create({
-    //     data: {
-    //       userid: userId,
-    //       propertyid: propertyId,
-    //       checkin_date: new Date(checkInDate),
-    //       checkout_date: new Date(checkOutDate),
-    //       adults: adults || 1,
-    //       children: children || 0,
-    //       total_nights: totalNightsCalculated,
-    //       total_amount: Number.parseFloat(totalAmount),
-    //       booking_status: "CONFIRMED",
-    //       created_at: new Date(),
-    //       updated_at: new Date(),
-    //     },
-    //   })
-
-    //   console.log("[v0] Booking created:", newBooking.bookingid)
-
-
-
-
-
-
-    //   // 2. Create payment record with status "PAID"
-    //   const payment = await tx.payment.create({
-    //     data: {
-    //       bookingid: newBooking.bookingid,
-    //       paymentmethodid: 2, // Stripe = 2
-    //       amount: Number.parseFloat(totalAmount),
-    //       currency: "CAD",
-    //       stripe_payment_intent_id: paymentIntentId,
-    //       stripe_charge_id: chargeId,
-    //       payment_status: "PAID",
-    //       paid_at: new Date(),
-    //       created_at: new Date(),
-    //     },
-    //   })
-
-    //   console.log("[v0] Payment created:", payment.paymentid)
-
-    //   // 3. Create booking_room entries for each booked room
-    //   const bookingRooms = await Promise.all(
-    //     rooms.map((room) =>
-    //       tx.booking_room.create({
-    //         data: {
-    //           bookingid: newBooking.bookingid,
-    //           propertyroomid: room.roomId,
-
-    //           room_price: Number(room.pricePerNight),
-    //           room_count: Number(room.quantity),
-    //           subtotal: Number(room.pricePerNight) * Number(room.quantity) * totalNightsCalculated,
-    //         },
-    //       })
-    //     )
-    //   )
-
-
-
-    //   console.log("[v0] Booking rooms created:", bookingRooms.length)
-
-    //   // 4. Create room_availability entries for each day of stay
-    //   const roomAvailabilityEntries = []
-    //   const currentDate = new Date(checkInDate)
-    //   const checkoutDateObj = new Date(checkOutDate)
-
-    //   while (currentDate < checkoutDateObj) {
-    //     for (const room of rooms) {
-    //       await tx.room_availability.create({
-    //         data: {
-    //           bookingid: newBooking.bookingid,
-    //           propertyroomid: room.roomId,
-    //           booked_date: new Date(currentDate),
-    //           rooms_booked: room.quantity,
-    //           created_at: new Date(),
-    //         },
-    //       })
-    //     }
-    //     currentDate.setDate(currentDate.getDate() + 1)
-    //   }
-
-
-    //   console.log("[v0] Room availability entries created:", roomAvailabilityEntries.length)
-
-    //   return {
-    //     booking: newBooking,
-    //     payment,
-    //     bookingRooms,
-    //     roomAvailabilityCount: roomAvailabilityEntries.length,
-    //   }
-    // })
-
-
-    // 1️⃣ Transaction: only critical writes
+  
     const result = await prisma.$transaction(async (tx) => {
       const newBooking = await tx.booking.create({
         data: {
@@ -273,6 +179,14 @@ const getBookingDetails = async (req, res) => {
             checkouttime: true,
             photo1_featured: true,
             propertymaplink: true,
+            User:{
+              select:{
+                firstname:true,
+                lastname:true,
+                email:true,
+                phoneno:true
+              }
+            }
           },
         },
         booking_room: {
@@ -340,7 +254,11 @@ const getBookingDetails = async (req, res) => {
         image: booking.property.photo1_featured,
         checkInTime: booking.property.checkintime,
         checkOutTime: booking.property.checkouttime,
-        propertymaplink: booking.property.propertymaplink
+        propertymaplink: booking.property.propertymaplink,
+        firstName:booking.property.User.firstname,
+        lastName:booking.property.User.lastname,
+        email:booking.property.User.email,
+        phoneno:booking.property.User.phoneno
       },
 
       dates: {

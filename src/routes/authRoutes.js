@@ -1,5 +1,5 @@
 import express from "express";
-import { getGoogleLoginPage, handleGoogleCallback, checkEmail, verifyCode,forgotPassword, signUp, login, getCanadianProvinces,getCanadianCities,me, logout, specificCityById, specificProvinceById} from "../Controller/authController.js";
+import { getGoogleLoginPage, updateCustomerInfo,handleGoogleCallback, checkEmail, verifyCode,forgotPassword, signUp, login, getCanadianProvinces,getCanadianCities,me, logout, specificCityById, specificProvinceById} from "../Controller/authController.js";
 import { verifyAuthentication } from "../middlewares/authMiddleware.js";
 
 
@@ -20,7 +20,7 @@ router.get("/specificProvinceById/:id", specificProvinceById);
 router.get('/me', verifyAuthentication, me);
 router.post('/forgotPassword', forgotPassword);
 
-
+router.put('/updateCustomerInfo',updateCustomerInfo);
 router.post("/logout",logout)
 // router.get("/profile", verifyAuthentication, getProfile);
 

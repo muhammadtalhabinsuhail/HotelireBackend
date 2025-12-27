@@ -6,7 +6,7 @@ import fetch from "node-fetch";
 import dotenv from "dotenv";
 import { sendEmail } from "../utils/sendMail.js";
 import { sendWelcomeHostEmail } from "../utils/ownerWelcomeMail.js";
-
+import { normalizeCanadianPhone } from "../utils/ReusableFunction/normalizeCanadianPhone.js";
 
 
 // CANADA ID --> 39
@@ -187,6 +187,8 @@ const signUp = async (req, res) => {
   try {
 
 
+    const perfect_phone = normalizeCanadianPhone(req.body.phoneno);
+
     const data = {
       roleid: req.body.roleid || 3, // default role is 3
       firstname: req.body.firstname,
@@ -195,7 +197,7 @@ const signUp = async (req, res) => {
       passwordhash: req.body.passwordhash, // hash before saving!
       address: req.body.address,
       postalcode: req.body.postalcode,
-      phoneno: req.body.phoneno,
+      phoneno: perfect_phone,
       profilepic: req.body.profilepic || null,
       isemailverified: req.body.isemailverified, // default false until verified
 
@@ -208,6 +210,8 @@ const signUp = async (req, res) => {
       international_province: req.body.international_province,
       international_city: req.body.international_city,
     };
+
+
 
 
     const isUserExist = await prisma.User.findUnique(
@@ -275,7 +279,7 @@ const signUp = async (req, res) => {
       data: user,
     });
   } catch (ex) {
-     console.log(ex);
+    console.log(ex);
     return res.status(500).json({ ex: error.message });
   }
 
@@ -478,8 +482,6 @@ const handleGoogleCallback = async (req, res) => {
       sameSite: isProd ? "none" : "lax"
     });
 
-
-
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProd,
@@ -633,7 +635,7 @@ const specificProvinceById = async (req, res) => {
 //  "/api/logout"
 
 const logout = async (req, res) => {
-  
+
   res.clearCookie("token", {
     httpOnly: true,
     secure: isProd,
@@ -649,8 +651,99 @@ const logout = async (req, res) => {
 
 
 
+const updateCustomerInfo = async (req, res) => {
+  try {
+    const { userid, firstname, lastname, email, phoneno } = req.body;
+
+    const perfect_phone = normalizeCanadianPhone(phoneno);
+
+
+    if (!userid || !firstname || !lastname || !email || !perfect_phone) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: {
+        userid: Number(userid),
+      },
+      data: {
+        firstname,
+        lastname,
+        phoneno: perfect_phone,
+        updatedat: new Date(),
+      },
+    });
+
+
+
+    // 🔐 Remove password
+    const { passwordhash, ...userWithoutPassword } = updatedUser;
 
 
 
 
-export { checkEmail, verifyCode, signUp, login, forgotPassword, getCanadianProvinces, getCanadianCities, getGoogleLoginPage, handleGoogleCallback, me, logout, specificCityById, specificProvinceById } 
+
+
+
+
+
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      domain: isProd ? ".hotelire.ca" : undefined,
+      path: "/",
+    });
+
+
+
+
+
+    console.log('userWithoutPassword', userWithoutPassword);
+
+    const token =  jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
+
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      domain: isProd ? ".hotelire.ca" : undefined,
+      path: "/",
+      maxAge: 1000 * 60 * 60 * 24
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return res.status(200).json({
+      message: "User updated successfully",
+      user: userWithoutPassword,
+    });
+  } catch (error) {
+    console.error(error);
+    console.log(error)
+
+    if (error.code === "P2025") {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+
+
+
+
+export { checkEmail, verifyCode, signUp, login, forgotPassword, getCanadianProvinces, getCanadianCities, getGoogleLoginPage, handleGoogleCallback, me, logout, specificCityById, specificProvinceById, updateCustomerInfo } 
