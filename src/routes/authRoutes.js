@@ -20,6 +20,11 @@ router.get("/specificProvinceById/:id", specificProvinceById);
 router.get('/me', verifyAuthentication, me);
 router.post('/forgotPassword', forgotPassword);
 
+
+https://api.hotelire.ca/api/auth//getCanadianCities/1
+
+
+
 router.put('/updateCustomerInfo',updateCustomerInfo);
 router.post("/logout",logout)
 // router.get("/profile", verifyAuthentication, getProfile);

@@ -10,6 +10,10 @@ import ownerPropertyRoutes from "./routes/ownerPropertyRoutes.js";
 import bookingpayment from "./routes/bookingpayment.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import ownerBooking from "./routes/ownerBookingRoutes.js";
+import stripePaymentRoutes from "./routes/stripePaymentRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js"
+import payoutRoutes from "./routes/payoutRoutes.js";
+import OwnerStripeStatus from "./routes/OwnerStripeStatus.js";
 const app = express();
 app.set("trust proxy", 1);
 dotenv.config();
@@ -60,8 +64,17 @@ app.use("/api/booking",verifyAuthentication, bookingRoutes);
 // Owner Booking ko details show krna ka lia
  app.use("/api/owner/bookings", verifyAuthentication,ownerBooking);
 
- 
 
+ app.use("/api/stripe", verifyAuthentication, stripePaymentRoutes);
+ app.use("/api/payout", verifyAuthentication, payoutRoutes);
+
+
+app.use("/api/admin", verifyAuthentication, adminRoutes);
+
+
+
+
+app.use("/api/ownerstripestatus", verifyAuthentication,OwnerStripeStatus );
 // Protect only required routes
 app.use("/api/users", verifyAuthentication, userRoutes);
 app.use("/api/owner", verifyAuthentication, ownerRoutes);

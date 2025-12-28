@@ -20,28 +20,29 @@ model states {
 }
 
 model User {
-  userid                 Int              @id @default(autoincrement())
-  roleid                 Int?             @default(3)
-  firstname              String           @db.VarChar(50)
-  lastname               String           @db.VarChar(50)
-  email                  String           @unique @db.VarChar(100)
-  passwordhash           String?          @db.VarChar(255)
-  address                String?          @db.VarChar(200)
+  userid                 Int                   @id @default(autoincrement())
+  roleid                 Int?                  @default(3)
+  firstname              String                @db.VarChar(50)
+  lastname               String                @db.VarChar(50)
+  email                  String                @unique @db.VarChar(100)
+  passwordhash           String?               @db.VarChar(255)
+  address                String?               @db.VarChar(200)
   canadian_provinceid    Int?
   canadian_cityid        Int?
-  international_country  String?          @db.VarChar(100)
-  international_province String?          @db.VarChar(100)
-  international_city     String?          @db.VarChar(100)
-  postalcode             String?          @db.VarChar(20)
-  phoneno                String?          @db.VarChar(20)
-  isemailverified        Boolean?         @default(false)
+  international_country  String?               @db.VarChar(100)
+  international_province String?               @db.VarChar(100)
+  international_city     String?               @db.VarChar(100)
+  postalcode             String?               @db.VarChar(20)
+  phoneno                String?               @db.VarChar(20)
+  isemailverified        Boolean?              @default(false)
   profilepic             String?
-  createdat              DateTime?        @default(now()) @db.Timestamp(6)
-  updatedat              DateTime?        @default(now()) @db.Timestamp(6)
-  canadian_cities        canadian_cities? @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
-  canadian_states        canadian_states? @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
-  role                   role?            @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
+  createdat              DateTime?             @default(now()) @db.Timestamp(6)
+  updatedat              DateTime?             @default(now()) @db.Timestamp(6)
+  canadian_cities        canadian_cities?      @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
+  canadian_states        canadian_states?      @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
+  role                   role?                 @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
   booking                booking[]
+  owner_subscriptions    owner_subscriptions[]
   ownerinfo              ownerinfo?
   property               property[]
 }
@@ -74,6 +75,15 @@ model ownerinfo {
   pdftypeid                   Int?
   residentialdocpdf           String?                      @db.VarChar(255)
   userid                      Int?                         @unique
+  stripe_customer_id          String?                      @db.VarChar(255)
+  stripe_connect_id           String?                      @db.VarChar(255)
+  payout_schedule             String?                      @default("monthly") @db.VarChar(50)
+  minimum_payout_amount       Decimal?                     @default(10) @db.Decimal(10, 2)
+  updated_at                  DateTime?                    @default(now()) @db.Timestamptz(6)
+  subscription_status         String?                      @db.VarChar(100)
+  subscription_id             String?                      @db.VarChar(100)
+  current_period_end          DateTime?                    @default(now()) @db.Timestamptz(6)
+  owner_subscriptions         owner_subscriptions[]
   owner_residentialdocpdftype owner_residentialdocpdftype? @relation(fields: [pdftypeid], references: [pdftypeid], onDelete: NoAction, onUpdate: NoAction)
   owner_iddocpictype          owner_iddocpictype?          @relation(fields: [pictypeid], references: [pictypeid], onDelete: NoAction, onUpdate: NoAction)
   User                        User?                        @relation(fields: [userid], references: [userid], onDelete: NoAction, onUpdate: NoAction)
@@ -125,6 +135,7 @@ model property {
   superadminseen              Boolean?                     @default(false)
   userid                      Int?
   AvailableStatus             Boolean?                     @default(false)
+  created_at                  DateTime?                    @default(now()) @db.Timestamp(6)
   booking                     booking[]
   canadian_cities             canadian_cities?             @relation(fields: [canadian_city_id], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
   canadian_states             canadian_states?             @relation(fields: [canadian_province_id], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
@@ -254,18 +265,20 @@ model booking_room {
 }
 
 model payment {
-  paymentid                Int             @id @default(autoincrement())
-  bookingid                Int?
-  paymentmethodid          Int?
-  amount                   Decimal         @db.Decimal(10, 2)
-  currency                 String?         @default("USD") @db.VarChar(10)
-  stripe_payment_intent_id String?         @db.VarChar(255)
-  stripe_charge_id         String?         @db.VarChar(255)
-  payment_status           String?         @default("PENDING") @db.VarChar(30)
-  paid_at                  DateTime?       @db.Timestamp(6)
-  created_at               DateTime?       @default(now()) @db.Timestamp(6)
-  booking                  booking?        @relation(fields: [bookingid], references: [bookingid], onDelete: NoAction, onUpdate: NoAction)
-  payment_method           payment_method? @relation(fields: [paymentmethodid], references: [paymentmethodid], onDelete: NoAction, onUpdate: NoAction)
+  paymentid                  Int             @id @default(autoincrement())
+  bookingid                  Int?
+  paymentmethodid            Int?
+  amount                     Decimal         @db.Decimal(10, 2)
+  currency                   String?         @default("USD") @db.VarChar(10)
+  stripe_payment_intent_id   String?         @db.VarChar(255)
+  stripe_charge_id           String?         @db.VarChar(255)
+  payment_status             String?         @default("PENDING") @db.VarChar(30)
+  paid_at                    DateTime?       @db.Timestamp(6)
+  created_at                 DateTime?       @default(now()) @db.Timestamp(6)
+  stripe_connect_transfer_id String?         @db.VarChar(255)
+  application_fee_amount     Decimal?        @db.Decimal(10, 2)
+  booking                    booking?        @relation(fields: [bookingid], references: [bookingid], onDelete: NoAction, onUpdate: NoAction)
+  payment_method             payment_method? @relation(fields: [paymentmethodid], references: [paymentmethodid], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model payment_method {
@@ -283,4 +296,17 @@ model room_availability {
   created_at     DateTime?     @default(now()) @db.Timestamp(6)
   booking        booking?      @relation(fields: [bookingid], references: [bookingid], onDelete: Cascade, onUpdate: NoAction)
   propertyroom   propertyroom? @relation(fields: [propertyroomid], references: [propertyroomid], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model owner_subscriptions {
+  id                   Int        @id @default(autoincrement())
+  userid               Int?
+  ownerid              Int?
+  amount               Decimal    @db.Decimal(10, 2)
+  currency             String     @default("CAD") @db.VarChar(10)
+  current_period_start DateTime   @db.Timestamp(6)
+  current_period_end   DateTime   @db.Timestamp(6)
+  created_at           DateTime?  @default(now()) @db.Timestamp(6)
+  ownerinfo            ownerinfo? @relation(fields: [ownerid], references: [ownerid], onDelete: Cascade, onUpdate: NoAction)
+  User                 User?      @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
 }
