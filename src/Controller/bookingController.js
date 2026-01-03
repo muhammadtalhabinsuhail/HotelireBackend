@@ -1,5 +1,9 @@
-  import { email } from "zod";
+import { email } from "zod";
 import prisma from "../config/prisma.js";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const SUPER_ADMIN_ACCOUNT = process.env.SUPER_ADMIN_STRIPE_ACCOUNT;
 
 
 // This function is called after Stripe payment succeeds
@@ -29,7 +33,7 @@ const createBooking = async (req, res) => {
     })
 
     // Validate required fields
-    if (!userId || !propertyId || !checkInDate || !checkOutDate || !rooms) {
+    if (!userId || !propertyId || !checkInDate || !checkOutDate || !rooms || !paymentIntentId) {
       return res.status(400).json({
         error: "Missing required fields",
       })
@@ -47,7 +51,35 @@ const createBooking = async (req, res) => {
 
 
 
-  
+    // 🔐 STEP 0: VERIFY PAYMENT WITH STRIPE (MANDATORY)
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (!paymentIntent) {
+      return res.status(400).json({ error: "Invalid payment intent" });
+    }
+
+    if (paymentIntent.status !== "succeeded") {
+      return res.status(402).json({
+        error: "Payment not completed. Booking not created.",
+      });
+    }
+
+    // OPTIONAL BUT STRONGLY RECOMMENDED
+    if (paymentIntent.amount !== Math.round(Number(totalAmount) * 100)) {
+      return res.status(400).json({
+        error: "Payment amount mismatch",
+      });
+    }
+
+    if (!paymentIntent.transfer_data?.destination) {
+      return res.status(400).json({
+        error: "Owner transfer not found",
+      });
+    }
+
+
+
+
     const result = await prisma.$transaction(async (tx) => {
       const newBooking = await tx.booking.create({
         data: {
@@ -179,12 +211,12 @@ const getBookingDetails = async (req, res) => {
             checkouttime: true,
             photo1_featured: true,
             propertymaplink: true,
-            User:{
-              select:{
-                firstname:true,
-                lastname:true,
-                email:true,
-                phoneno:true
+            User: {
+              select: {
+                firstname: true,
+                lastname: true,
+                email: true,
+                phoneno: true
               }
             }
           },
@@ -255,10 +287,10 @@ const getBookingDetails = async (req, res) => {
         checkInTime: booking.property.checkintime,
         checkOutTime: booking.property.checkouttime,
         propertymaplink: booking.property.propertymaplink,
-        firstName:booking.property.User.firstname,
-        lastName:booking.property.User.lastname,
-        email:booking.property.User.email,
-        phoneno:booking.property.User.phoneno
+        firstName: booking.property.User.firstname,
+        lastName: booking.property.User.lastname,
+        email: booking.property.User.email,
+        phoneno: booking.property.User.phoneno
       },
 
       dates: {
@@ -416,9 +448,104 @@ const completeExpiredBookings = async (req, res) => {
 
 
 
+
+const getUserBookings = async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: "User not authenticated",
+      })
+    }
+
+    const userid = req.user.user.userid
+
+    console.log("[v0] Fetching bookings for user:", userid)
+
+    // Fetch all bookings for the user with necessary relations
+    const bookings = await prisma.booking.findMany({
+      where: {
+        userid: userid,
+      },
+      include: {
+        property: {
+          select: {
+            propertyid: true,
+            propertytitle: true,
+            photo1_featured: true,
+          },
+        },
+        booking_room: {
+          include: {
+            propertyroom: {
+              select: {
+                roomname: true,
+                roomtype: {
+                  select: {
+                    roomtypename: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        created_at: "desc", // Most recent bookings first
+      },
+    })
+
+    console.log("[v0] Found bookings:", bookings.length)
+
+    // Format bookings for frontend
+    const formattedBookings = bookings.map((booking) => ({
+      id: booking.bookingid.toString(),
+      bookingId: `CONF-${booking.bookingid}`,
+      hotelName: booking.property?.propertytitle || "Property",
+      propertyImage: booking.property?.photo1_featured || "",
+      checkInDate: new Date(booking.checkin_date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      checkOutDate: new Date(booking.checkout_date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      totalNights: booking.total_nights,
+      totalAmount: Number(booking.total_amount),
+      status:
+        booking.booking_status === "CONFIRMED"
+          ? "Confirmed"
+          : booking.booking_status === "COMPLETED"
+            ? "Completed"
+            : booking.booking_status === "CANCELLED"
+              ? "Cancelled"
+              : "Confirmed",
+    }))
+
+    res.status(200).json({
+      success: true,
+      bookings: formattedBookings,
+    })
+  } catch (error) {
+    console.error("[v0] Error fetching user bookings:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch bookings",
+      details: error.message,
+    })
+  }
+}
+
+
+
 export {
   createBooking,
   getBookingDetails,
   cancelBooking,
   completeExpiredBookings,
+  getUserBookings
 }; 

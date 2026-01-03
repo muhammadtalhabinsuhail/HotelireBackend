@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import { sendEmail } from "../utils/sendMail.js";
 import { sendWelcomeHostEmail } from "../utils/ownerWelcomeMail.js";
 import { normalizeCanadianPhone } from "../utils/ReusableFunction/normalizeCanadianPhone.js";
+import { uploadImageToCloudinary, uploadPdfToCloudinary } from "../middlewares/uploadHandler.js";
 
 
 // CANADA ID --> 39
@@ -452,6 +453,7 @@ const handleGoogleCallback = async (req, res) => {
         email: profile.email,
         profilepic: profile.picture || null,
         isemailverified: true,
+        isGoogleUser:true
       };
 
       try {
@@ -746,4 +748,147 @@ const updateCustomerInfo = async (req, res) => {
 
 
 
-export { checkEmail, verifyCode, signUp, login, forgotPassword, getCanadianProvinces, getCanadianCities, getGoogleLoginPage, handleGoogleCallback, me, logout, specificCityById, specificProvinceById, updateCustomerInfo } 
+const updateCustomerInfoProfile = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "User is not Signed In" });
+        }
+
+        const userId = req.user.user.userid;
+
+        // Data from FormData (text fields)
+        const {
+            firstname,
+            lastname,
+            phoneno,
+            address,
+            postalcode,
+            email,
+            isCanadian,
+            canadian_provinceid,
+            canadian_cityid,
+            international_country,
+            international_province,
+            international_city
+        } = req.body;
+
+        // Base update data
+        const data = {
+            firstname,
+            lastname,
+            phoneno: normalizeCanadianPhone(phoneno),
+            address,
+            postalcode,
+        };
+        
+        // Handle Canadian vs International logic
+        if (isCanadian === "true") {
+            data.canadian_provinceid = parseInt(canadian_provinceid) || null;
+            data.canadian_cityid = parseInt(canadian_cityid) || null;
+            data.international_country = null;
+            data.international_province = null;
+            data.international_city = null;
+        } else {
+            data.canadian_provinceid = null;
+            data.canadian_cityid = null;
+            data.international_country = international_country;
+            data.international_province = international_province;
+            data.international_city = international_city;
+        }
+
+        // Handle Profile Picture Upload if present
+        if (req.files && req.files.profilepic) {
+            const file = req.files.profilepic[0];
+            if (file.size > 1 * 1024 * 1024) {
+                 return res.status(400).json({ message: "Image size must be less than 1MB" });
+            }
+            const imageUrl = await uploadImageToCloudinary(file.buffer, file.originalname);
+            data.profilepic = imageUrl;
+        }
+
+        // Update User in Database
+        const updatedUser = await prisma.User.update({
+            where: { userid: userId },
+            data: data
+        });
+
+        // Logout (Clear existing cookie)
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
+            domain: isProd ? ".hotelire.ca" : undefined,
+            path: "/",
+        });
+
+        // Login (Create new token with updated user info)
+        const { passwordhash, ...userWithoutPassword } = updatedUser;
+        const token = await jwt.sign({ user: userWithoutPassword }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES });
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
+            domain: isProd ? ".hotelire.ca" : undefined,
+            path: "/",
+            maxAge: 1000 * 60 * 60 * 24
+        });
+
+        return res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
+
+    } catch (error) {
+        console.error("Update Customer Info Error:", error);
+        return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
+
+
+
+
+
+const changePassword = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "User is not Signed In" });
+        }
+
+        const userId = req.user.user.userid;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        const user = await prisma.User.findUnique({ where: { userid: userId } });
+        if (!user) {
+             return res.status(404).json({ message: "User not found" });
+        }
+        if(!user.passwordhash){
+          return res.status(404).json({ message: "It is a google signed in user" });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.passwordhash);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Incorrect current password" });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.User.update({
+            where: { userid: userId },
+            data: { passwordhash: hashedPassword }
+        });
+
+        return res.status(200).json({ message: "Password updated successfully" });
+
+    } catch (error) {
+        console.error("Change Password Error:", error);
+        return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
+
+
+
+export { checkEmail,changePassword,updateCustomerInfoProfile, verifyCode, signUp, login, forgotPassword, getCanadianProvinces, getCanadianCities, getGoogleLoginPage, handleGoogleCallback, me, logout, specificCityById, specificProvinceById, updateCustomerInfo } 

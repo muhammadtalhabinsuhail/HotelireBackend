@@ -2,6 +2,7 @@ import { uploadImageToCloudinary, uploadPdfToCloudinary } from "../middlewares/u
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
+import { attachAverageRatings } from "./propertyAverageRating.js"
 
 import { sendWelcomeHostEmail } from "../utils/ownerWelcomeMail.js";
 
@@ -283,6 +284,8 @@ const step1 = async (req, res) => {
     }
 
 
+
+
     if (locationId === 2 && !data.prevpdfurl) {
       const pdfDoc = req.files?.residentialdocpdf?.[0] || null;
 
@@ -327,13 +330,48 @@ const step1 = async (req, res) => {
 
 
 
+    const owner = await prisma.ownerinfo.findFirst({
+      where: {
+        userid: Number(req.user.user.userid),
+      },
+      select: {
+        subscription_status: true,
+        stripe_connect_id: true,
+      },
+    });
+
+    if (!owner) {
+      return res.status(404).json({ message: "Owner not found" });
+    }
+
+    // 🔹 Variable 1 → subscription active?
+    const subscriptionActive =
+      owner.subscription_status === "active" ? true : false;
+
+    // 🔹 Variable 2 → stripe account connected?
+    const stripeConnected =
+      owner.stripe_connect_id ? true : false;
+
+
+
+
+
+
     if (ispropertyExists && propertyid && propertyid != 0) {
+
+
+
+
       const answer = await prisma.property.update(
         {
           where: {
             propertyid: propertyid
           },
-          data: { ...datawithouturl },
+          data: {
+            ...datawithouturl,
+            is_active: subscriptionActive,
+            is_active_byConnectId: stripeConnected,
+          },
         }
       )
       return res.status(200).json({
@@ -351,7 +389,11 @@ const step1 = async (req, res) => {
           where: {
             propertyid: ispropertyExists.propertyid
           },
-          data: { ...datawithouturl },
+          data: {
+            ...datawithouturl,
+            is_active: subscriptionActive,
+            is_active_byConnectId: stripeConnected,
+          },
         }
       )
 
@@ -371,7 +413,15 @@ const step1 = async (req, res) => {
 
 
 
-    const rep = await prisma.property.create({ data: { ...datawithouturl } });
+
+
+    const rep = await prisma.property.create({
+      data: {
+        ...datawithouturl,
+        is_active: subscriptionActive,
+        is_active_byConnectId: stripeConnected,
+      },
+    });
 
 
 
@@ -495,41 +545,62 @@ const step2 = async (req, res) => {
 
 
 
-    const uploadIfValid = async (file, existingUrl) => {
+    const uploadIfValid = async (file, existingUrl, photoname) => {
       if (!file) return existingUrl || null; // <-- fallback to existing URL
 
       if (file.size > 1 * 1024 * 1024) {
-        return res.status(400).json({ message: "Image size must be less than 1MB" });
+        return res.status(400).json({ message: `Image size must be less than 1MB, Please compress ${photoname}` });
       }
 
       return await uploadImageToCloudinary(file.buffer, file.originalname);
     };
 
 
-    // data.photo1_featured = await uploadIfValid(photo1_featured);
-    // data.photo2 = await uploadIfValid(photo2);
-    // data.photo3 = await uploadIfValid(photo3);
-    // data.photo4 = await uploadIfValid(photo4);
-    // data.photo5 = await uploadIfValid(photo5);
-
-
-    data.photo1_featured = await uploadIfValid(photo1_featured_file, photo1_featured_url);
+    data.photo1_featured = await uploadIfValid(photo1_featured_file, photo1_featured_url, "Featured Photo");
 
     if (!data.photo1_featured) {
       return res.status(400).json({ message: "At least, Featured photo is required" });
     }
 
 
-    data.photo2 = await uploadIfValid(photo2_file, photo2_url);
-    data.photo3 = await uploadIfValid(photo3_file, photo3_url);
-    data.photo4 = await uploadIfValid(photo4_file, photo4_url);
-    data.photo5 = await uploadIfValid(photo5_file, photo5_url);
+    data.photo2 = await uploadIfValid(photo2_file, photo2_url, "Photo 2");
+    data.photo3 = await uploadIfValid(photo3_file, photo3_url, "Photo 3");
+    data.photo4 = await uploadIfValid(photo4_file, photo4_url, "Photo 4");
+    data.photo5 = await uploadIfValid(photo5_file, photo5_url, "Photo 5");
+
+
+    const owner = await prisma.ownerinfo.findFirst({
+      where: {
+        userid: Number(req.user.user.userid),
+      },
+      select: {
+        subscription_status: true,
+        stripe_connect_id: true,
+      },
+    });
+
+    if (!owner) {
+      return res.status(404).json({ message: "Owner not found" });
+    }
+
+    // 🔹 Variable 1 → subscription active?
+    const subscriptionActive =
+      owner.subscription_status === "active" ? true : false;
+
+    // 🔹 Variable 2 → stripe account connected?
+    const stripeConnected =
+      owner.stripe_connect_id ? true : false;
 
 
 
     const updatedProperty = await prisma.property.update({
       where: { propertyid: reply.propertyid },
-      data: data
+      data: {
+        ...data,
+
+        is_active: subscriptionActive,
+        is_active_byConnectId: stripeConnected,
+      }
     });
 
     console.log(data);
@@ -797,12 +868,45 @@ const step3 = async (req, res) => {
       return res.status(400).json({ message: "Property not found or access denied" })
     }
 
+
+
+
+
+
+
+
+    const owner = await prisma.ownerinfo.findFirst({
+      where: {
+        userid: Number(req.user.user.userid),
+      },
+      select: {
+        subscription_status: true,
+        stripe_connect_id: true,
+      },
+    });
+
+    if (!owner) {
+      return res.status(404).json({ message: "Owner not found" });
+    }
+
+    // 🔹 Variable 1 → subscription active?
+    const subscriptionActive =
+      owner.subscription_status === "active" ? true : false;
+
+    // 🔹 Variable 2 → stripe account connected?
+    const stripeConnected =
+      owner.stripe_connect_id ? true : false;
+
+
+
     await prisma.property.update({
       where: { propertyid },
       data: {
         checkintime: data.checkInTime,
         checkouttime: data.checkOutTime,
         houserules: data.rules,
+        is_active: subscriptionActive,
+        is_active_byConnectId: stripeConnected,
       }
     })
 
@@ -888,159 +992,615 @@ const step3 = async (req, res) => {
 }
 
 
+
+
+
+
+
+
+
 const getProperties = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params
 
   try {
-
-
     if (id) {
-      // NOTE KRLO KA IS MA SIRF FEATURED WALA AMENITIES RETURN HONGA BHAI JAAN
       const property = await prisma.property.findMany({
-        where: { propertyid: Number(id) },
+        where: { propertyid: Number(id), AvailableStatus: true, is_active: true, is_active_byConnectId: true, issuspended: false, issuspended: false },
         include: {
           propertyclassification: true,
           canadian_cities: true,
           canadian_states: true,
           propertyamenities: {
             include: {
-              amenities: true
-            }
+              amenities: true,
+            },
           },
           propertysafetyfeatures: {
             include: {
-              safetyfeatures: true
-            }
+              safetyfeatures: true,
+            },
           },
           propertysharedspaces: {
             include: {
-              sharedspaces: true
-            }
+              sharedspaces: true,
+            },
           },
           propertyroom: {
             include: {
-              roomtype: true
-            }
-          }
-        }
-      });
+              roomtype: true,
+            },
+          },
+        },
+      })
 
       if (property.length === 0) {
-        return res.status(404).json({ message: "No Property was found!" });
-      } else {
-        return res.status(200).json({
-          message: "Property found successfully",
-          property,
-        });
+        return res.status(404).json({ message: "No Property was found!" })
       }
 
+      const propertiesWithRatings = await attachAverageRatings(property)
+
+      return res.status(200).json({
+        message: "Property found successfully",
+        properties: propertiesWithRatings,
+      })
     }
 
-
     const properties = await prisma.property.findMany({
+      where: { AvailableStatus: true, is_active: true, is_active_byConnectId: true, issuspended: false },
       include: {
         propertyclassification: true,
         propertyamenities: {
           include: {
-            amenities: true
-          }
+            amenities: true,
+          },
         },
         propertysafetyfeatures: {
           include: {
-            safetyfeatures: true
-          }
+            safetyfeatures: true,
+          },
         },
         propertysharedspaces: {
           include: {
-            sharedspaces: true
-          }
+            sharedspaces: true,
+          },
         },
         propertyroom: {
           include: {
-            roomtype: true
-          }
-        }
-      }
-    });
+            roomtype: true,
+          },
+        },
+      },
+    })
 
     if (properties.length === 0) {
-      return res.status(404).json({ message: "No Property was found!" });
+      return res.status(200).json({
+        message: "No properties found",
+        property: [],
+      })
     }
+
+    const propertiesWithRatings = await attachAverageRatings(properties)
 
     return res.status(200).json({
       message: "Properties found successfully",
-      properties,
-    });
+      properties: propertiesWithRatings,
+    })
+  } catch (error) {
 
-
-
-  } catch (ex) {
-    console.log(ex);
-    return res.status(500).json({ message: "Internal Server Error", error: ex.message });
-  }
-
-
-}
-
-const getSpecificOwnerProperties = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    if (!id) {
-      return res.status(400).json({ message: "Owner ID is required" });
-    }
-
-    const property = await prisma.property.findMany({
-      where: {
-        userid: Number(id),
-      },
-      include: {
-        propertyclassification: true,
-        canadian_cities: true,
-        canadian_states: true,
-
-        propertyamenities: {
-          include: {
-            amenities: true
-          }
-        },
-
-        propertysafetyfeatures: {
-          include: {
-            safetyfeatures: true
-          }
-        },
-
-        propertysharedspaces: {
-          include: {
-            sharedspaces: true
-          }
-        },
-
-        propertyroom: {
-          include: {
-            roomtype: true
-          }
-        }
-      }
-    });
-
-    if (property.length === 0) {
-      return res.status(404).json({ message: "No Property was found!" });
-    }
-
-    return res.status(200).json({
-      message: "Property found successfully",
-      property,
-    });
-
-  } catch (ex) {
+    console.log(error)
     return res.status(500).json({
       message: "Internal Server Error",
-      error: ex.message
+      error: error.message,
+    })
+  }
+}
+
+
+
+
+
+
+
+
+
+const suspendProperty = async (req, res) => {
+  try {
+    // 🔐 check login + role
+    if (!req.user || req.user.user.roleid !== 2) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const propertyId = Number(req.body.propertyid || req.params.propertyid);
+
+    if (!propertyId) {
+      return res.status(400).json({ message: "propertyid is required" });
+    }
+
+    // 🔎 ensure property belongs to the logged-in owner
+    const property = await prisma.property.findFirst({
+      where: {
+        propertyid: propertyId,
+        userid: req.user.user.userid,
+      },
+    });
+
+    if (!property) {
+      return res.status(404).json({ message: "Property not found or access denied" });
+    }
+
+    // 🚫 suspend property
+    const updated = await prisma.property.update({
+      where: { propertyid: propertyId },
+      data: {
+        issuspended: true,                // optional: disable visibility
+      },
+    });
+
+    return res.status(200).json({
+      message: "Property suspended successfully",
+      data: updated,
+    });
+
+  } catch (error) {
+    console.error("Suspend property error:", error);
+    return res.status(500).json({
+      message: "Failed to suspend property",
+      error: error.message,
     });
   }
 };
 
 
-export { step1, step2, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties }; 
+
+
+
+
+
+
+
+
+const toggleAvailability = async (req, res) => {
+  try {
+    if (!req.user || req.user.user.roleid !== 2) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const propertyid = Number(req.body.propertyid);
+
+    if (!propertyid) {
+      return res.status(400).json({ message: "propertyid is required" });
+    }
+
+    const property = await prisma.property.findFirst({
+      where: {
+        propertyid: propertyid,
+        userid: req.user.user.userid
+      }
+    });
+
+    if (!property) {
+      return res.status(404).json({ message: "Property not found or access denied" });
+    }
+
+    const updated = await prisma.property.update({
+      where: { propertyid },
+      data: {
+        AvailableStatus: !property.AvailableStatus
+      }
+    });
+
+    return res.json({
+      message: "Availability updated",
+      availablestatus: updated.AvailableStatus
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+
+
+
+// const getSpecificOwnerProperties = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//     if (!id) {
+//       return res.status(400).json({ message: "Owner ID is required" });
+//     }
+
+//     const property = await prisma.property.findMany({
+//       where: {
+//         userid: Number(id),
+//       },
+//       include: {
+//         propertyclassification: true,
+//         canadian_cities: true,
+//         canadian_states: true,
+
+//         propertyamenities: {
+//           include: {
+//             amenities: true
+//           }
+//         },
+
+//         propertysafetyfeatures: {
+//           include: {
+//             safetyfeatures: true
+//           }
+//         },
+
+//         propertysharedspaces: {
+//           include: {
+//             sharedspaces: true
+//           }
+//         },
+
+//         propertyroom: {
+//           include: {
+//             roomtype: true
+//           }
+//         }
+//       }
+//     });
+
+//     if (property.length === 0) {
+//       return res.status(404).json({ message: "No Property was found!" });
+//     }
+
+//     return res.status(200).json({
+//       message: "Property found successfully",
+//       property,
+//     });
+
+//   } catch (ex) {
+//     return res.status(500).json({
+//       message: "Internal Server Error",
+//       error: ex.message
+//     });
+//   }
+// };
+
+const getSpecificOwnerProperties = async (req, res) => {
+  const { id } = req.params
+
+  try {
+    if (!id) {
+      return res.status(400).json({ message: "Owner ID is required" })
+    }
+
+    const property = await prisma.property.findMany({
+      where: {
+        userid: Number(id),
+        issuspended: false
+      },
+      include: {
+        propertyclassification: true,
+        canadian_cities: true,
+        canadian_states: true,
+        propertyamenities: {
+          include: {
+            amenities: true,
+          },
+        },
+        propertysafetyfeatures: {
+          include: {
+            safetyfeatures: true,
+          },
+        },
+        propertysharedspaces: {
+          include: {
+            sharedspaces: true,
+          },
+        },
+        propertyroom: {
+          include: {
+            roomtype: true,
+          },
+        },
+      },
+    })
+
+    if (property.length === 0) {
+      return res.status(404).json({ message: "No Property was found!" })
+    }
+
+    const propertiesWithRatings = await attachAverageRatings(property)
+
+    return res.status(200).json({
+      message: "Property found successfully",
+      property: propertiesWithRatings,
+    })
+  } catch (ex) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: ex.message,
+    })
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+const addRoom = async (req, res) => {
+  if (!req.user || req.user.user.roleid != 2) {
+    return res.status(401).json({ message: "User is not Signed In or Unauthorized" })
+  }
+
+  try {
+    const ownerInfo = await prisma.ownerinfo.findFirst({
+      where: { userid: req.user.user.userid },
+    })
+
+    if (!ownerInfo) {
+      return res.status(401).json({ message: "User must fill verification form first!" })
+    }
+
+    const { propertyid, roomname, roomtypeid, roomcount, price } = req.body
+
+    // Validate required fields
+    if (!propertyid || !roomname || !roomtypeid || !roomcount || !price) {
+      return res.status(400).json({ message: "All fields are required" })
+    }
+
+    const userid = req.user.user.userid
+
+    // Verify property belongs to the user
+    const property = await prisma.property.findFirst({
+      where: {
+        propertyid: Number(propertyid),
+        userid,
+      },
+    })
+
+    if (!property) {
+      return res.status(400).json({ message: "Property not found or access denied" })
+    }
+
+    // Handle image uploads
+    let pic1Url = null
+    let pic2Url = null
+
+    if (req.files) {
+      const pic1File = req.files.find((f) => f.fieldname === "pic1")
+      const pic2File = req.files.find((f) => f.fieldname === "pic2")
+
+      if (pic1File) {
+        pic1Url = await uploadIfValid(pic1File.buffer)
+      }
+      if (pic2File) {
+        pic2Url = await uploadIfValid(pic2File.buffer)
+      }
+    }
+
+    if (!pic1Url || !pic2Url) {
+      return res.status(400).json({ message: "Both room images are required" })
+    }
+
+    // Create the room
+    const newRoom = await prisma.propertyroom.create({
+      data: {
+        propertyid: Number(propertyid),
+        roomtypeid: Number(roomtypeid),
+        roomname: roomname,
+        roomcount: Number(roomcount),
+        price: Number(price),
+        pic1: pic1Url,
+        pic2: pic2Url,
+        available: true,
+      },
+    })
+
+    return res.status(200).json({
+      message: "Room added successfully",
+      room: newRoom,
+    })
+  } catch (error) {
+    console.error("Add Room Error:", error)
+    return res.status(500).json({
+      message: "Error adding room",
+      error: error.message,
+    })
+  }
+}
+
+
+
+const getRoom = async (req, res) => {
+  if (!req.user || req.user.user.roleid != 2) {
+    return res.status(401).json({ message: "User is not Signed In or Unauthorized" })
+  }
+
+  try {
+    const { roomid } = req.params
+    const userid = req.user.user.userid
+
+    // Fetch the room and verify ownership
+    const room = await prisma.propertyroom.findFirst({
+      where: {
+        propertyroomid: Number(roomid),
+        property: {
+          userid: userid,
+        },
+      },
+      include: {
+        roomtype: true,
+      },
+    })
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found or access denied" })
+    }
+
+    return res.status(200).json({
+      message: "Room fetched successfully",
+      room: {
+        propertyroomid: room.propertyroomid,
+        propertyid: room.propertyid,
+        roomname: room.roomname,
+        roomtypeid: room.roomtypeid,
+        roomtypename: room.roomtype?.roomtypename,
+        roomcount: room.roomcount,
+        price: room.price,
+        pic1: room.pic1,
+        pic2: room.pic2,
+        available: room.available,
+      },
+    })
+  } catch (error) {
+    console.error("Get Room Error:", error)
+    return res.status(500).json({
+      message: "Error fetching room",
+      error: error.message,
+    })
+  }
+}
+
+const updateRoom = async (req, res) => {
+  if (!req.user || req.user.user.roleid != 2) {
+    return res.status(401).json({ message: "User is not Signed In or Unauthorized" })
+  }
+
+  try {
+    const ownerInfo = await prisma.ownerinfo.findFirst({
+      where: { userid: req.user.user.userid },
+    })
+
+    if (!ownerInfo) {
+      return res.status(401).json({ message: "User must fill verification form first!" })
+    }
+
+    const { propertyroomid, propertyid, roomname, roomtypeid, roomcount, price } = req.body
+
+    // Validate required fields
+    if (!propertyroomid || !propertyid || !roomname || !roomtypeid || !roomcount || !price) {
+      return res.status(400).json({ message: "All fields are required" })
+    }
+
+    const userid = req.user.user.userid
+
+    // Verify property belongs to the user
+    const property = await prisma.property.findFirst({
+      where: {
+        propertyid: Number(propertyid),
+        userid,
+      },
+    })
+
+    if (!property) {
+      return res.status(400).json({ message: "Property not found or access denied" })
+    }
+
+    // Verify room exists and belongs to the property
+    const existingRoom = await prisma.propertyroom.findFirst({
+      where: {
+        propertyroomid: Number(propertyroomid),
+        propertyid: Number(propertyid),
+      },
+    })
+
+    if (!existingRoom) {
+      return res.status(404).json({ message: "Room not found" })
+    }
+
+    // Prepare update data
+    const updateData = {
+      roomname: roomname,
+      roomtypeid: Number(roomtypeid),
+      roomcount: Number(roomcount),
+      price: Number(price),
+    }
+
+    // Handle image uploads if new images provided
+    if (req.files && req.files.length > 0) {
+      const pic1File = req.files.find((f) => f.fieldname === "pic1")
+      const pic2File = req.files.find((f) => f.fieldname === "pic2")
+
+      if (pic1File) {
+        const pic1Url = await uploadIfValid(pic1File.buffer)
+        if (pic1Url) {
+          updateData.pic1 = pic1Url
+        }
+      }
+      if (pic2File) {
+        const pic2Url = await uploadIfValid(pic2File.buffer)
+        if (pic2Url) {
+          updateData.pic2 = pic2Url
+        }
+      }
+    }
+
+    // Update the room
+    const updatedRoom = await prisma.propertyroom.update({
+      where: {
+        propertyroomid: Number(propertyroomid),
+      },
+      data: updateData,
+    })
+
+    return res.status(200).json({
+      message: "Room updated successfully",
+      room: updatedRoom,
+    })
+  } catch (error) {
+    console.error("Update Room Error:", error)
+    return res.status(500).json({
+      message: "Error updating room",
+      error: error.message,
+    })
+  }
+}
+export { step1,addRoom,  updateRoom,getRoom, toggleAvailability, step2, suspendProperty, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

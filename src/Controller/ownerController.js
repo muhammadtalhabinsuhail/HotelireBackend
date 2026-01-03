@@ -217,6 +217,16 @@ const createOwnerInfo = async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
 const fetchOwnerIdDocPic_Categories = async (req, res) => {
   try {
     var OwnerIdDocPic_Categories = await prisma.owner_iddocpictype.findMany();

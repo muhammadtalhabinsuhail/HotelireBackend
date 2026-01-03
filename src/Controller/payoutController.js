@@ -157,6 +157,15 @@ const connectStripeAccount = async (req, res) => {
                 where: { ownerid: ownerInfo.ownerid },
                 data: { stripe_connect_id: connectAccountId },
             });
+
+            await prisma.property.updateMany({
+                where:{userid:ownerInfo.userid},
+                data:{
+                    is_active_byConnectId:true
+                }
+            })
+
+
         }
 
         // Create onboarding link

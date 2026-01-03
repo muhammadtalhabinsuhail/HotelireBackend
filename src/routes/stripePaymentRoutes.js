@@ -5,13 +5,19 @@ import {
   cancelOwnerSubscription,
   createCustomerPayment,
   getPaymentStatus,
+    handleSubscriptionPaymentFailure,
+  getSubscriptionStatus,
+  getSubscriptionClientSecret,
+  getOwnerSubscriptionDetails,
+  checkOwnerSubscription
+
 } from "../Controller/stripePaymentController.js";
 
 const router = express.Router();
 
 // FLOW-A: Owner Subscription Routes
 router.post(
-  "/subscription/create",
+  "/create-subscription",
   verifyAuthentication,
   createOwnerSubscription
 );
@@ -28,5 +34,33 @@ router.post(
   createCustomerPayment
 );
 router.get("/payment-status/:paymentId", verifyAuthentication, getPaymentStatus);
+
+router.get("/getSubscriptionClientSecret/:subscriptionId", verifyAuthentication, getSubscriptionClientSecret);
+
+router.get("/subscription/details", getOwnerSubscriptionDetails);
+
+
+router.get("/subscription/check-subscription", verifyAuthentication,checkOwnerSubscription);
+
+
+
+router.get("/subscription-status", verifyAuthentication, getSubscriptionStatus);
+router.post("/webhook/subscription-failure", handleSubscriptionPaymentFailure);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export default router;

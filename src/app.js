@@ -14,10 +14,17 @@ import stripePaymentRoutes from "./routes/stripePaymentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js"
 import payoutRoutes from "./routes/payoutRoutes.js";
 import OwnerStripeStatus from "./routes/OwnerStripeStatus.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import propertyStatusRoutes from "./routes/propertyStatusRoutes.js";
+import stripeWebhook from "./routes/stripeWebhook.js";
+import bodyParser from "body-parser";
+
+
 const app = express();
 app.set("trust proxy", 1);
 dotenv.config();
 
+app.use("/api/webhookstripes", stripeWebhook);
 
 
 
@@ -37,6 +44,7 @@ app.use(cors({
 
 app.use(cookieParser());
 app.use(express.json());
+app.use(bodyParser.json());
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -65,12 +73,13 @@ app.use("/api/booking",verifyAuthentication, bookingRoutes);
  app.use("/api/owner/bookings", verifyAuthentication,ownerBooking);
 
 
- app.use("/api/stripe", verifyAuthentication, stripePaymentRoutes);
+ app.use("/api/stripes", verifyAuthentication, stripePaymentRoutes);
  app.use("/api/payout", verifyAuthentication, payoutRoutes);
 
 
 app.use("/api/admin", verifyAuthentication, adminRoutes);
 
+app.use("/api/owner", propertyStatusRoutes);
 
 
 
@@ -79,5 +88,5 @@ app.use("/api/ownerstripestatus", verifyAuthentication,OwnerStripeStatus );
 app.use("/api/users", verifyAuthentication, userRoutes);
 app.use("/api/owner", verifyAuthentication, ownerRoutes);
 app.use("/api/ownerProperty", verifyAuthentication, ownerPropertyRoutes);
-
+app.use("/api/review", reviewRoutes);
 export default app;

@@ -38,6 +38,7 @@ model User {
   profilepic             String?
   createdat              DateTime?             @default(now()) @db.Timestamp(6)
   updatedat              DateTime?             @default(now()) @db.Timestamp(6)
+  isGoogleUser           Boolean?              @default(false)
   canadian_cities        canadian_cities?      @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
   canadian_states        canadian_states?      @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
   role                   role?                 @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
@@ -45,6 +46,7 @@ model User {
   owner_subscriptions    owner_subscriptions[]
   ownerinfo              ownerinfo?
   property               property[]
+  review                 review[]
 }
 
 model canadian_cities {
@@ -132,10 +134,12 @@ model property {
   checkintime                 String?                      @db.VarChar(50)
   checkouttime                String?                      @db.VarChar(50)
   houserules                  String?
-  superadminseen              Boolean?                     @default(false)
+  issuspended                 Boolean?                     @default(false)
   userid                      Int?
   AvailableStatus             Boolean?                     @default(false)
   created_at                  DateTime?                    @default(now()) @db.Timestamp(6)
+  is_active                   Boolean?                     @default(true)
+  is_active_byConnectId       Boolean?                     @default(false)
   booking                     booking[]
   canadian_cities             canadian_cities?             @relation(fields: [canadian_city_id], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
   canadian_states             canadian_states?             @relation(fields: [canadian_province_id], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
@@ -147,6 +151,7 @@ model property {
   propertyroom                propertyroom[]
   propertysafetyfeatures      propertysafetyfeatures[]
   propertysharedspaces        propertysharedspaces[]
+  review                      review[]
 }
 
 model propertyamenities {
@@ -246,10 +251,11 @@ model booking {
   booking_status    String?             @default("PENDING") @db.VarChar(30)
   created_at        DateTime?           @default(now()) @db.Timestamp(6)
   updated_at        DateTime?           @default(now()) @db.Timestamp(6)
-  property          property?           @relation(fields: [propertyid], references: [propertyid], onDelete: NoAction, onUpdate: NoAction)
+  property          property?           @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
   User              User?               @relation(fields: [userid], references: [userid], onDelete: NoAction, onUpdate: NoAction)
   booking_room      booking_room[]
   payment           payment[]
+  review            review?
   room_availability room_availability[]
 }
 
@@ -302,11 +308,29 @@ model owner_subscriptions {
   id                   Int        @id @default(autoincrement())
   userid               Int?
   ownerid              Int?
-  amount               Decimal    @db.Decimal(10, 2)
+  amount               Decimal?   @db.Decimal(10, 2)
   currency             String     @default("CAD") @db.VarChar(10)
-  current_period_start DateTime   @db.Timestamp(6)
-  current_period_end   DateTime   @db.Timestamp(6)
+  current_period_start DateTime?  @db.Timestamp(6)
+  current_period_end   DateTime?  @db.Timestamp(6)
   created_at           DateTime?  @default(now()) @db.Timestamp(6)
   ownerinfo            ownerinfo? @relation(fields: [ownerid], references: [ownerid], onDelete: Cascade, onUpdate: NoAction)
   User                 User?      @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model review {
+  id               Int       @id @default(autoincrement())
+  booking_id       Int       @unique
+  property_id      Int
+  user_id          Int
+  rating           Int?
+  comment          String?
+  is_public        Boolean?  @default(true)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+  review_requested Boolean?  @default(false)
+  review_submitted Boolean?  @default(false)
+  booking          booking   @relation(fields: [booking_id], references: [bookingid], onDelete: Cascade, onUpdate: NoAction)
+  property         property  @relation(fields: [property_id], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
+  User             User      @relation(fields: [user_id], references: [userid], onDelete: Cascade, onUpdate: NoAction)
 }

@@ -25,6 +25,7 @@
 
   import app from "./app.js";
 import dotenv from "dotenv";
+import { initializeReviewScheduler } from "./utils/reviewScheduler.js";
 
 dotenv.config();
 
@@ -39,6 +40,10 @@ const PORT = process.env.PORT || 3000;
 // });
 
 // Bind to 0.0.0.0 for cloud deployment
+
+initializeReviewScheduler();
+
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

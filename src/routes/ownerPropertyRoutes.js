@@ -1,5 +1,5 @@
 import express from "express";
-import { step1, step2, getPropertyAmenities, getPropertySharedSpaces, getPropertySafetyFeatures, step3, fetchPropertyClassificationCategories, isRoomAvailableinProperty, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
+import { step1, step2,addRoom,updateRoom,getRoom, suspendProperty ,toggleAvailability,getPropertyAmenities, getPropertySharedSpaces, getPropertySafetyFeatures, step3, fetchPropertyClassificationCategories, isRoomAvailableinProperty, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
 import { verifyAuthentication } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 
@@ -19,6 +19,15 @@ router.post(
 
 router.get("/fetchPropertyClassificationCategories", fetchPropertyClassificationCategories)
 router.get("/fetchPropertyClassificationCategories/:id", fetchPropertyClassificationCategories)
+
+
+router.post(
+  "/suspendProperty",
+  verifyAuthentication,
+  suspendProperty
+);
+
+router.post("/toggle-availability", verifyAuthentication, toggleAvailability);
 
 
 // http://localhost:3000/api/ownerProperty/step2
@@ -42,6 +51,7 @@ router.post(
   isRoomAvailableinProperty
 );
 
+router.post("/addRoom", verifyAuthentication, upload.any(), addRoom)
 
 router.post("/getPropertyAmenities", verifyAuthentication, getPropertyAmenities);
 router.post("/getPropertySafetyFeatures", verifyAuthentication, getPropertySafetyFeatures);
@@ -55,6 +65,11 @@ router.post(
   upload.any(),
   step3
 );
+
+
+router.get("/getRoom/:roomid", verifyAuthentication, getRoom)
+
+router.put("/updateRoom", verifyAuthentication, upload.any(), updateRoom)
 
 // http://localhost:3000/api/ownerProperty/getSpecificOwnerProperties
 router.get("/getSpecificOwnerProperties/:id", getSpecificOwnerProperties);
