@@ -1000,6 +1000,107 @@ const step3 = async (req, res) => {
 
 
 const getProperties = async (req, res) => {
+  const { id } = req.params
+
+  try {
+    if (id) {
+      const property = await prisma.property.findMany({
+        where: { propertyid: Number(id) },
+        include: {
+          propertyclassification: true,
+          canadian_cities: true,
+          canadian_states: true,
+          propertyamenities: {
+            include: {
+              amenities: true,
+            },
+          },
+          propertysafetyfeatures: {
+            include: {
+              safetyfeatures: true,
+            },
+          },
+          propertysharedspaces: {
+            include: {
+              sharedspaces: true,
+            },
+          },
+          propertyroom: {
+            include: {
+              roomtype: true,
+            },
+          },
+        },
+      })
+
+      if (property.length === 0) {
+        return res.status(404).json({ message: "No Property was found!" })
+      }
+
+      const propertiesWithRatings = await attachAverageRatings(property)
+
+      return res.status(200).json({
+        message: "Property found successfully",
+        properties: propertiesWithRatings,
+      })
+    }
+
+    const properties = await prisma.property.findMany({
+      where: { AvailableStatus: true, is_active: true, is_active_byConnectId: true, issuspended: false },
+      include: {
+        propertyclassification: true,
+        propertyamenities: {
+          include: {
+            amenities: true,
+          },
+        },
+        propertysafetyfeatures: {
+          include: {
+            safetyfeatures: true,
+          },
+        },
+        propertysharedspaces: {
+          include: {
+            sharedspaces: true,
+          },
+        },
+        propertyroom: {
+          include: {
+            roomtype: true,
+          },
+        },
+      },
+    })
+
+    if (properties.length === 0) {
+      return res.status(200).json({
+        message: "No properties found",
+        property: [],
+      })
+    }
+
+    const propertiesWithRatings = await attachAverageRatings(properties)
+
+    return res.status(200).json({
+      message: "Properties found successfully",
+      properties: propertiesWithRatings,
+    })
+  } catch (error) {
+
+    console.log(error)
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    })
+  }
+}
+
+
+
+
+
+
+const getPropertiesforowner = async (req, res) => {
   const { id } = req.params;
 
   console.log('id....',id);
@@ -1101,7 +1202,6 @@ const getProperties = async (req, res) => {
     })
   }
 }
-
 
 
 
@@ -1569,7 +1669,7 @@ const updateRoom = async (req, res) => {
     })
   }
 }
-export { step1,addRoom,  updateRoom,getRoom, toggleAvailability, step2, suspendProperty, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties };
+export { step1,addRoom,  getPropertiesforowner  ,updateRoom,getRoom, toggleAvailability, step2, suspendProperty, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties };
 
 
 

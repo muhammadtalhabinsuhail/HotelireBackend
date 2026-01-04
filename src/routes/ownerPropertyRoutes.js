@@ -1,5 +1,5 @@
 import express from "express";
-import { step1, step2,addRoom,updateRoom,getRoom, suspendProperty ,toggleAvailability,getPropertyAmenities, getPropertySharedSpaces, getPropertySafetyFeatures, step3, fetchPropertyClassificationCategories, isRoomAvailableinProperty, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
+import { step1, step2,addRoom,updateRoom,getRoom, suspendProperty ,getPropertiesforowner,toggleAvailability,getPropertyAmenities, getPropertySharedSpaces, getPropertySafetyFeatures, step3, fetchPropertyClassificationCategories, isRoomAvailableinProperty, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
 import { verifyAuthentication } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 
@@ -83,5 +83,10 @@ router.get("/amenities", getAmenities);
 router.get("/amenities/:id", getAmenities);
 router.get("/getProperties/:id", getProperties)
 router.get("/getProperties", getProperties)
+
+
+
+router.get("/getPropertiesforowner/:id",getPropertiesforowner);
+
 
 export default router;

@@ -6,6 +6,10 @@ import { customerBookingConfirmedEmailTemplate } from "../utils/bookingConfirmed
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const SUPER_ADMIN_ACCOUNT = process.env.SUPER_ADMIN_STRIPE_ACCOUNT;
 
+function toPrismaDate(dateStr) {
+  const d = new Date(dateStr); // "January 23, 2026"
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0));
+}
 
 // This function is called after Stripe payment succeeds
 const createBooking = async (req, res) => {
@@ -23,6 +27,14 @@ const createBooking = async (req, res) => {
       paymentIntentId,
       chargeId,
     } = req.body
+
+
+
+
+
+    console.log("getinggggggggg date", checkInDate);
+
+  
 
     console.log("[v0] Creating booking with data:", {
       userId,
@@ -82,22 +94,26 @@ const createBooking = async (req, res) => {
 
 
 
- const formatDate = (isoString) => {
-    const date = new Date(isoString);
-    return date.toLocaleDateString("en-CA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+    // const formatDate = (isoString) => {
+    //   const date = new Date(isoString);
+    //   return date.toLocaleDateString("en-CA", {
+    //     year: "numeric",
+    //     month: "long",
+    //     day: "numeric",
+    //   });
+    // };
+
 
     const result = await prisma.$transaction(async (tx) => {
       const newBooking = await tx.booking.create({
         data: {
           userid: userId,
           propertyid: propertyId,
-          checkin_date:new Date( formatDate(checkInDate) ),
-          checkout_date:new Date( formatDate(checkOutDate)),
+
+          checkin_date: toPrismaDate(checkInDate),
+          checkout_date: toPrismaDate(checkOutDate),
+
+
           adults: adults || 1,
           children: children || 0,
           total_nights: totalNightsCalculated,
@@ -173,43 +189,43 @@ const createBooking = async (req, res) => {
 
 
 
-  //   userId,
-  //     propertyId,
-  //     checkInDate,
-  //     checkOutDate,
-  //     adults,
-  //     children,
-  //     rooms,
-  //     totalAmount,
-  //     totalNights,
-  //     paymentIntentId,
-  //     chargeId,;
+    //   userId,
+    //     propertyId,
+    //     checkInDate,
+    //     checkOutDate,
+    //     adults,
+    //     children,
+    //     rooms,
+    //     totalAmount,
+    //     totalNights,
+    //     paymentIntentId,
+    //     chargeId,;
 
-  //   customerName,
-  //     propertyName = "Property Name",
-  //     bookingId = "HB-XXXX",
-  //     checkIn = "N/A",
-  //     checkOut = "N/A",
-  //     guests = "N/A",
-  //     bookingUrl
+    //   customerName,
+    //     propertyName = "Property Name",
+    //     bookingId = "HB-XXXX",
+    //     checkIn = "N/A",
+    //     checkOut = "N/A",
+    //     guests = "N/A",
+    //     bookingUrl
 
 
 
-  //   const user = prisma.User.findUnique({
-  //     where: { userId: userId }
-  //   });
+    //   const user = prisma.User.findUnique({
+    //     where: { userId: userId }
+    //   });
 
-  //   if (!user) {
-  //     return res.status(400).json({
-  //       error: "User was not found",
-  //     })
-  //   }
+    //   if (!user) {
+    //     return res.status(400).json({
+    //       error: "User was not found",
+    //     })
+    //   }
 
-  //   user.firstName
-  //   checkInDate
-  //   checkOutDate
-  //   newBookingdata.bookingId
-  //  const total_guests = Number(adults) + Number(children);
+    //   user.firstName
+    //   checkInDate
+    //   checkOutDate
+    //   newBookingdata.bookingId
+    //  const total_guests = Number(adults) + Number(children);
 
 
     // await sendEmail(
