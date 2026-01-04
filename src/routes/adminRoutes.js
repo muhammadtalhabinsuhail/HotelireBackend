@@ -34,6 +34,7 @@ import {
   createOwner,
   deleteOwner,
   getAllPropertiesForAdmin,
+  getStripePayments
 } from "../Controller/adminController.js"
 
 const router = express.Router()
@@ -53,6 +54,9 @@ router.get("/properties/:id", getPropertyById)
 router.get("/getAllPropertiesForAdmin", getAllPropertiesForAdmin)
 
 
+
+
+router.get("/payments", getStripePayments)
 
 
 export default router

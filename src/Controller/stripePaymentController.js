@@ -24,6 +24,7 @@ const createOwnerSubscription = async (req, res) => {
 
     let stripeCustomerId = ownerInfo.stripe_customer_id;
 
+    
     if (!stripeCustomerId) {
       const user = await prisma.User.findUnique({ where: { userid: userId } });
 

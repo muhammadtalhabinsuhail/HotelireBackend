@@ -1,11 +1,11 @@
-function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
+function propertyPublishedEmailTemplate(ownerName = "Partner", propertyName = "Your Property") {
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Subscription Issue</title>
+  <title>Property Published</title>
   <style>
     * {
       margin: 0;
@@ -39,7 +39,7 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
       background: #ffffff;
       text-align: center;
       padding: 40px 30px;
-      border-bottom: 3px solid #E74C3C;
+      border-bottom: 3px solid #59A5B2;
       position: relative;
     }
 
@@ -50,7 +50,7 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
       right: -10%;
       width: 300px;
       height: 300px;
-      background: rgba(231, 76, 60, 0.08);
+      background: rgba(89, 165, 178, 0.08);
       border-radius: 50%;
     }
 
@@ -69,7 +69,7 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
 
     .header p {
       font-size: 14px;
-      color: #E74C3C;
+      color: #59A5B2;
       font-weight: 500;
     }
 
@@ -93,28 +93,28 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
     }
 
     .content-text strong {
-      color: #E74C3C;
+      color: #59A5B2;
       font-weight: 600;
     }
 
-    /* Alert Box */
-    .alert-box {
-      background: linear-gradient(135deg, #fff5f5 0%, #fdecea 100%);
-      border: 2px solid #E74C3C;
+    /* Success Box */
+    .success-box {
+      background: linear-gradient(135deg, #f0f9fb 0%, #e8f4f8 100%);
+      border: 2px solid #59A5B2;
       border-radius: 16px;
       padding: 25px;
       margin: 35px 0;
-      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.12);
+      box-shadow: 0 4px 15px rgba(89, 165, 178, 0.1);
     }
 
-    .alert-title {
+    .success-title {
       font-size: 18px;
       font-weight: 700;
-      color: #E74C3C;
+      color: #59A5B2;
       margin-bottom: 10px;
     }
 
-    .alert-text {
+    .success-text {
       font-size: 14px;
       color: #444;
     }
@@ -122,7 +122,7 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
     /* Info Section */
     .info-section {
       background: #f8fafb;
-      border-left: 4px solid #E74C3C;
+      border-left: 4px solid #59A5B2;
       padding: 20px;
       border-radius: 10px;
       margin: 30px 0;
@@ -144,7 +144,7 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
     .info-icon {
       width: 32px;
       height: 32px;
-      background: #E74C3C;
+      background: #59A5B2;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -207,61 +207,59 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
 
       <!-- Header -->
       <div class="header">
-         <a href="https://hotelire.com">
+       <a href="https://hotelire.com">
           <img src="https://res.cloudinary.com/dzzuoem1w/image/upload/v1767352509/logo_orignal_q0jn75.png" alt="Hotelire Logo" class="header-logo" />
-        </a>
-        <h1>Subscription Issue Detected</h1>
-        <p>We’re genuinely concerned</p>
+        </a>        <h1>Property Published Successfully 🎉</h1>
+        <p>Your listing is now live on Hotelire</p>
       </div>
 
       <!-- Content -->
       <div class="content">
-        <h2 class="content-title">Dear ${ownerName},</h2>
+        <h2 class="content-title">Well done, ${ownerName}!</h2>
 
         <p class="content-text">
-          We noticed that your <strong>Hotelire subscription payment has failed or expired</strong>.
-          As a result, your property listings are currently unavailable for customers.
+          Congratulations! Your property <strong>${propertyName}</strong> has been successfully published on
+          <strong>Hotelire</strong>. We truly appreciate the effort and care you put into creating your listing.
         </p>
 
-        <div class="alert-box">
-          <div class="alert-title">Your Properties Are Temporarily Offline</div>
-          <p class="alert-text">
-            This means customers can no longer view or book your property.
-            We know how much effort you put into setting everything up — and we truly don’t want
-            your hard work to go unnoticed.
+        <div class="success-box">
+          <div class="success-title">Your Property Is Now Live</div>
+          <p class="success-text">
+            Customers can now view, explore, and book your property in real time.
+            You are officially open for business on Hotelire.
           </p>
         </div>
 
         <div class="info-section">
           <div class="info-item">
-            <div>⛔</div>
+            <div>👀</div>
             <div class="info-text">
-              <strong>No New Bookings</strong>
-              Customers cannot book while your subscription is inactive
+              <strong>Visible to Customers</strong>
+              Your property appears in search results instantly
             </div>
           </div>
 
           <div class="info-item">
-            <div>📉</div>
+            <div>📅</div>
             <div class="info-text">
-              <strong>Lost Earning Opportunities</strong>
-              Potential revenue may be missed during this time
+              <strong>Ready for Bookings</strong>
+              Guests can now place booking requests
             </div>
           </div>
 
           <div class="info-item">
-            <div >❤️</div>
+            <div>💰</div>
             <div class="info-text">
-              <strong>We Value You</strong>
-              Your presence on Hotelire truly matters to us
+              <strong>Start Earning</strong>
+              Turn your property into a reliable income source
             </div>
           </div>
         </div>
 
         <p class="content-text" style="font-size: 14px; color: #666;">
-          Please renew your subscription as soon as possible to bring your properties back online
-          and continue your earning journey with us.
-          We’re here to support you every step of the way.
+          You’ve taken a great step forward.
+          Keep your availability and details updated to maximize bookings.
+          We’re excited to see your success on Hotelire.
         </p>
       </div>
 

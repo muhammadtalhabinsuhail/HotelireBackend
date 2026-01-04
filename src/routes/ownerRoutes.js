@@ -1,5 +1,5 @@
 import express from "express";
-import { createOwnerInfo , getOwnerRevenueStats ,getOwnerTransactions,fetchOwnerIdDocPic_Categories,fetchOwnerResidentialDocPdf_Categories} from "../Controller/ownerController.js";
+import { createOwnerInfo , getOwnerOverviewData,getOwnerRevenueStats ,getOwnerTransactions,fetchOwnerIdDocPic_Categories,fetchOwnerResidentialDocPdf_Categories} from "../Controller/ownerController.js";
 import { verifyAuthentication } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 
@@ -24,6 +24,8 @@ router.post(
 router.get("/revenue/:ownerId/stats", verifyAuthentication, getOwnerRevenueStats);
 router.get("/revenue/:ownerId/transactions", verifyAuthentication, getOwnerTransactions);
 
+
+router.get("/overview", verifyAuthentication, getOwnerOverviewData);
 
 
 router.get("/ownerdocpictypes", verifyAuthentication, fetchOwnerIdDocPic_Categories);

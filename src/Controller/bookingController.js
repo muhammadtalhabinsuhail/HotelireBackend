@@ -1,6 +1,7 @@
 import { email } from "zod";
 import prisma from "../config/prisma.js";
 import Stripe from "stripe";
+import { customerBookingConfirmedEmailTemplate } from "../utils/bookingConfirmedtoCustomerMail.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const SUPER_ADMIN_ACCOUNT = process.env.SUPER_ADMIN_STRIPE_ACCOUNT;
@@ -77,16 +78,26 @@ const createBooking = async (req, res) => {
       });
     }
 
+    let newBookingdata;
 
 
+
+ const formatDate = (isoString) => {
+    const date = new Date(isoString);
+    return date.toLocaleDateString("en-CA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
     const result = await prisma.$transaction(async (tx) => {
       const newBooking = await tx.booking.create({
         data: {
           userid: userId,
           propertyid: propertyId,
-          checkin_date: new Date(checkInDate),
-          checkout_date: new Date(checkOutDate),
+          checkin_date:new Date( formatDate(checkInDate) ),
+          checkout_date:new Date( formatDate(checkOutDate)),
           adults: adults || 1,
           children: children || 0,
           total_nights: totalNightsCalculated,
@@ -96,6 +107,7 @@ const createBooking = async (req, res) => {
           updated_at: new Date(),
         },
       })
+      newBookingdata = newBooking;
 
       const payment = await tx.payment.create({
         data: {
@@ -156,6 +168,56 @@ const createBooking = async (req, res) => {
     })
 
     console.log("[v0] Room availability created:", availabilityData.length)
+
+
+
+
+
+  //   userId,
+  //     propertyId,
+  //     checkInDate,
+  //     checkOutDate,
+  //     adults,
+  //     children,
+  //     rooms,
+  //     totalAmount,
+  //     totalNights,
+  //     paymentIntentId,
+  //     chargeId,;
+
+  //   customerName,
+  //     propertyName = "Property Name",
+  //     bookingId = "HB-XXXX",
+  //     checkIn = "N/A",
+  //     checkOut = "N/A",
+  //     guests = "N/A",
+  //     bookingUrl
+
+
+
+  //   const user = prisma.User.findUnique({
+  //     where: { userId: userId }
+  //   });
+
+  //   if (!user) {
+  //     return res.status(400).json({
+  //       error: "User was not found",
+  //     })
+  //   }
+
+  //   user.firstName
+  //   checkInDate
+  //   checkOutDate
+  //   newBookingdata.bookingId
+  //  const total_guests = Number(adults) + Number(children);
+
+
+    // await sendEmail(
+    //   req.user.user.email,
+    //   "Now You are the owner of Hotelire, Please Subscribe to show case your properties. 🎉",
+    //   customerBookingConfirmedEmailTemplate(req.user.user.firstname,,,,,,)
+    // );
+
 
 
     res.status(201).json({

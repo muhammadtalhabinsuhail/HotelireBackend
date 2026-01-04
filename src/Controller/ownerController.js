@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
 import { ca } from "react-day-picker/locale";
 import { normalizeCanadianPhone } from "../utils/ReusableFunction/normalizeCanadianPhone.js";
+import { ownerVerificationApprovedEmailTemplate } from "../utils/customerBecomesOwner.js";
 
 dotenv.config();
 
@@ -200,6 +201,17 @@ const createOwnerInfo = async (req, res) => {
       path: "/",
       maxAge: 1000 * 60 * 60 * 24
     });
+
+
+
+
+
+
+    await sendEmail(
+      data2.email,
+      "Now You are the owner of Hotelire, Please Subscribe to show case your properties. 🎉",
+      ownerVerificationApprovedEmailTemplate(data.legalfullname)
+    );
 
 
     res.status(201).json({
@@ -428,4 +440,208 @@ const getOwnerTransactions = async (req, res) => {
   }
 };
 
-export { createOwnerInfo, getOwnerRevenueStats, getOwnerTransactions, fetchOwnerIdDocPic_Categories, fetchOwnerResidentialDocPdf_Categories }; 
+
+
+
+
+
+// --- NEW FUNCTION: Get Overview Data ---
+const getOwnerOverviewData = async (req, res) => {
+  try {
+    // Check authentication
+    if (!req.user || !req.user.user || !req.user.user.userid) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const ownerId = Number(req.user.user.userid);
+
+    // 1. Total Properties (isSuspended = false)
+    const totalProperties = await prisma.property.count({
+      where: {
+        userid: ownerId,
+        issuspended: false
+      }
+    });
+
+    // 2. Bookings This Month (Confirmed/Completed)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const bookingsThisMonth = await prisma.booking.count({
+      where: {
+        property: { userid: ownerId },
+        booking_status: { in: ['CONFIRMED', 'COMPLETED'] },
+        created_at: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        }
+      }
+    });
+
+    // 3. Revenue This Month (Confirmed/Completed)
+    const revenueAggregate = await prisma.booking.aggregate({
+      _sum: { total_amount: true },
+      where: {
+        property: { userid: ownerId },
+        booking_status: { in: ['CONFIRMED', 'COMPLETED'] },
+        created_at: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        }
+      }
+    });
+    const revenueThisMonth = Number(revenueAggregate._sum.total_amount || 0);
+
+    // 4. Average Rating
+    // Find all properties for this owner first
+    const properties = await prisma.property.findMany({
+      where: { userid: ownerId },
+      select: { propertyid: true }
+    });
+    const propertyIds = properties.map(p => p.propertyid);
+
+    const reviewsAggregate = await prisma.review.aggregate({
+      _avg: { rating: true },
+      where: {
+        property_id: { in: propertyIds },
+        review_submitted: true
+      }
+    });
+    const averageRating = reviewsAggregate._avg.rating ? Number(reviewsAggregate._avg.rating).toFixed(1) : "0.0";
+
+    // 5. Room Distribution (Graph 3)
+    // Count rooms by room type for this owner's properties
+    const roomCounts = await prisma.propertyroom.groupBy({
+      by: ['roomtypeid'],
+      _count: {
+        propertyroomid: true
+      },
+      where: {
+        property: { userid: ownerId }
+      }
+    });
+
+    // Fetch Room Type Names
+    const roomTypeIds = roomCounts.map(rc => rc.roomtypeid).filter(id => id !== null);
+    const roomTypes = await prisma.roomtype.findMany({
+      where: {
+        roomtypeid: { in: roomTypeIds }
+      }
+    });
+
+    // Define colors for the chart
+    const colors = ["#59A5B2", "#FEBC11", "#10B981", "#EF4444", "#8B5CF6"];
+
+    const propertyDistribution = roomCounts.map((rc, index) => {
+      const type = roomTypes.find(rt => rt.roomtypeid === rc.roomtypeid);
+      return {
+        name: type ? type.roomtypename : "Unknown",
+        value: rc._count.propertyroomid,
+        color: colors[index % colors.length]
+      };
+    });
+
+
+    // 6. Recent Activity (Top 4 recent bookings)
+    const recentBookings = await prisma.booking.findMany({
+      where: {
+        property: { userid: ownerId }
+      },
+      orderBy: { created_at: 'desc' },
+      take: 4,
+      include: {
+        property: { select: { propertytitle: true } },
+        User: { select: { firstname: true, lastname: true } }
+      }
+    });
+
+    const recentActivity = recentBookings.map(b => ({
+      type: 'booking',
+      text: `New booking for ${b.property.propertytitle}`,
+      time: b.created_at,
+      guest: `${b.User?.firstname || 'Guest'} ${b.User?.lastname || ''}`,
+      color: "#59A5B2",
+      status: b.booking_status,
+      amount: b.total_amount
+    }));
+
+    // 7. Graph Data (Revenue & Bookings Trend - Last 6 Months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1); // Start from the 1st of that month
+
+    const trendBookings = await prisma.booking.findMany({
+      where: {
+        property: { userid: ownerId },
+        booking_status: { in: ['CONFIRMED', 'COMPLETED'] },
+        created_at: { gte: sixMonthsAgo }
+      }
+    });
+
+    // Initialize months array for the last 6 months
+    const revenueData = [];
+    const bookingsData = [];
+
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(sixMonthsAgo);
+      d.setMonth(d.getMonth() + i);
+      const monthName = d.toLocaleString('default', { month: 'short' });
+
+      revenueData.push({ month: monthName, revenue: 0 });
+      bookingsData.push({ month: monthName, bookings: 0 });
+    }
+
+    trendBookings.forEach(b => {
+      const m = new Date(b.created_at).toLocaleString('default', { month: 'short' });
+
+      const revIdx = revenueData.findIndex(d => d.month === m);
+      if (revIdx !== -1) {
+        revenueData[revIdx].revenue += Number(b.total_amount);
+      }
+
+      const bookIdx = bookingsData.findIndex(d => d.month === m);
+      if (bookIdx !== -1) {
+        bookingsData[bookIdx].bookings += 1;
+      }
+    });
+
+
+    res.json({
+      success: true,
+      data: {
+        stats: {
+          totalProperties,
+          bookingsThisMonth,
+          revenueThisMonth,
+          averageRating
+        },
+        revenueData, // Graph 1
+        bookingsData, // Graph 2
+        propertyDistribution, // Graph 3
+        recentActivity // Recent Activity
+      }
+    });
+
+  } catch (error) {
+    console.error("Overview Error:", error);
+    res.status(500).json({ error: "Failed to fetch overview data" });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export { createOwnerInfo, getOwnerOverviewData, getOwnerRevenueStats, getOwnerTransactions, fetchOwnerIdDocPic_Categories, fetchOwnerResidentialDocPdf_Categories }; 

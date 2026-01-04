@@ -1,5 +1,5 @@
 export function subscriptionActivatedEmailTemplate(ownerName) {
-  return `
+  return  `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -207,7 +207,9 @@ export function subscriptionActivatedEmailTemplate(ownerName) {
 
       <!-- Header -->
       <div class="header">
-        <img src="/images/logo-orignal.png" alt="Hotelire Logo" class="header-logo" />
+        <a href="https://hotelire.com">
+          <img src="https://res.cloudinary.com/dzzuoem1w/image/upload/v1767352509/logo_orignal_q0jn75.png" alt="Hotelire Logo" class="header-logo" />
+        </a>
         <h1>Subscription Activated 🎉</h1>
         <p>You are officially live on Hotelire</p>
       </div>
@@ -230,7 +232,7 @@ export function subscriptionActivatedEmailTemplate(ownerName) {
 
         <div class="info-section">
           <div class="info-item">
-            🏨
+            <div>🏨</div>
             <div class="info-text">
               <strong>Live Listings</strong>
               Your property is searchable and bookable in real-time
@@ -238,7 +240,7 @@ export function subscriptionActivatedEmailTemplate(ownerName) {
           </div>
 
           <div class="info-item">
-            <div class="info-icon">💳</div>
+            <div >💳</div>
             <div class="info-text">
               <strong>Secure Payments</strong>
               All bookings are handled safely through our trusted payment system
@@ -246,7 +248,7 @@ export function subscriptionActivatedEmailTemplate(ownerName) {
           </div>
 
           <div class="info-item">
-            <div class="info-icon">📈</div>
+            <div >📈</div>
             <div class="info-text">
               <strong>Start Earning</strong>
               Receive bookings and grow your revenue effortlessly

@@ -1000,12 +1000,18 @@ const step3 = async (req, res) => {
 
 
 const getProperties = async (req, res) => {
-  const { id } = req.params
+  const { id } = req.params;
 
+  console.log('id....',id);
+  
+      
   try {
     if (id) {
-      const property = await prisma.property.findMany({
-        where: { propertyid: Number(id), AvailableStatus: true, is_active: true, is_active_byConnectId: true, issuspended: false, issuspended: false },
+      
+        console.log('inside........');
+
+      const property = await prisma.property.findUnique({
+        where: { propertyid: Number(id) },
         include: {
           propertyclassification: true,
           canadian_cities: true,
@@ -1033,15 +1039,16 @@ const getProperties = async (req, res) => {
         },
       })
 
+      console.log(property)
       if (property.length === 0) {
         return res.status(404).json({ message: "No Property was found!" })
       }
 
-      const propertiesWithRatings = await attachAverageRatings(property)
+      // const propertiesWithRatings = await attachAverageRatings(property)
 
       return res.status(200).json({
         message: "Property found successfully",
-        properties: propertiesWithRatings,
+        property: property,
       })
     }
 

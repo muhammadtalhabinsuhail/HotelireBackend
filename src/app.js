@@ -18,7 +18,7 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import propertyStatusRoutes from "./routes/propertyStatusRoutes.js";
 import stripeWebhook from "./routes/stripeWebhook.js";
 import bodyParser from "body-parser";
-
+import contactRoutes from "./routes/contactRoutes.js"
 
 const app = express();
 app.set("trust proxy", 1);
@@ -80,6 +80,8 @@ app.use("/api/booking",verifyAuthentication, bookingRoutes);
 app.use("/api/admin", verifyAuthentication, adminRoutes);
 
 app.use("/api/owner", propertyStatusRoutes);
+
+app.use("/api/contact", contactRoutes);
 
 
 
