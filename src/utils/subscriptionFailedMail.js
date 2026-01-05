@@ -1,4 +1,4 @@
-function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
+export function subscriptionExpiredEmailTemplate(ownerName) {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -173,6 +173,25 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
     .footer-links {
       margin-top: 15px;
     }
+       .cta-button {
+      display: inline-block;
+      margin: 30px auto 10px;
+      background: #59A5B2;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(89, 165, 178, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .cta-button:hover {
+      background: #4a8a99;
+      box-shadow: 0 8px 24px rgba(89, 165, 178, 0.4);
+      transform: translateY(-1px);
+    }
 
     .footer-links a {
       color: #59A5B2;
@@ -231,6 +250,8 @@ function subscriptionExpiredEmailTemplate(ownerName = "Partner") {
             your hard work to go unnoticed.
           </p>
         </div>
+
+        <a href="https://www.hotelire.ca/owner/subscription" class="cta-button"> You can subscribe by clicking it </a>
 
         <div class="info-section">
           <div class="info-item">

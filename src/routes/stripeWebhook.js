@@ -198,6 +198,7 @@ import Stripe from "stripe";
 import prisma from "../config/prisma.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { subscriptionActivatedEmailTemplate } from "../utils/subscriptionActivatedMail.js";
+import { subscriptionExpiredEmailTemplate } from "../utils/subscriptionFailedMail.js";
 
 
 const router = express.Router();
@@ -315,15 +316,18 @@ router.post(
         data: { is_active: activate }
       });
 
+
+      const user = await prisma.User.findFirst({
+        where: {
+          userid: Number(owner.userid),
+        },
+      });
+
+      console.log(user, "........")
+
+
       if (activate) {
 
-        const user = await prisma.User.findFirst({
-          where: {
-            userid: Number(owner.userid),
-          },
-        });
-
-        console.log(user,"........")
 
 
         await sendEmail(
@@ -334,6 +338,15 @@ router.post(
 
         console.log()
       }
+
+      if (!activate) {
+        await sendEmail(
+          user.email,
+          "Your Hotelire Subscription is not Activated",
+          subscriptionExpiredEmailTemplate(user.firstname)
+        );
+      }
+
 
       console.log(
         activate
