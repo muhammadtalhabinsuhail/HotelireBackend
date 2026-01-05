@@ -233,7 +233,7 @@ const createBooking = async (req, res) => {
     //   "Now You are the owner of Hotelire, Please Subscribe to show case your properties. 🎉",
     //   customerBookingConfirmedEmailTemplate(req.user.user.firstname,,,,,,)
     // );
-
+  // cvcv
 
 
     res.status(201).json({
