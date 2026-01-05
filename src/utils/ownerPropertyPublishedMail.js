@@ -1,11 +1,11 @@
-function propertyPublishedEmailTemplate(ownerName = "Partner", propertyName = "Your Property") {
+export function propertyPublishedEmailTemplate(ownerName, propertyName) {
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Property Published</title>
+  <title>Property Published And Updated</title>
   <style>
     * {
       margin: 0;
@@ -209,7 +209,7 @@ function propertyPublishedEmailTemplate(ownerName = "Partner", propertyName = "Y
       <div class="header">
        <a href="https://hotelire.com">
           <img src="https://res.cloudinary.com/dzzuoem1w/image/upload/v1767352509/logo_orignal_q0jn75.png" alt="Hotelire Logo" class="header-logo" />
-        </a>        <h1>Property Published Successfully 🎉</h1>
+        </a>        <h1>Property changes has been saved Successfully 🎉</h1>
         <p>Your listing is now live on Hotelire</p>
       </div>
 
@@ -218,7 +218,7 @@ function propertyPublishedEmailTemplate(ownerName = "Partner", propertyName = "Y
         <h2 class="content-title">Well done, ${ownerName}!</h2>
 
         <p class="content-text">
-          Congratulations! Your property <strong>${propertyName}</strong> has been successfully published on
+          Congratulations! Your property <strong>${propertyName}</strong> has been successfully published and updated on
           <strong>Hotelire</strong>. We truly appreciate the effort and care you put into creating your listing.
         </p>
 

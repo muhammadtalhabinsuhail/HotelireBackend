@@ -5,6 +5,8 @@ import prisma from "../config/prisma.js";
 import { attachAverageRatings } from "./propertyAverageRating.js"
 
 import { sendWelcomeHostEmail } from "../utils/ownerWelcomeMail.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import { propertyPublishedEmailTemplate } from "../utils/ownerPropertyPublishedMail.js";
 
 
 
@@ -371,6 +373,7 @@ const step1 = async (req, res) => {
             ...datawithouturl,
             is_active: subscriptionActive,
             is_active_byConnectId: stripeConnected,
+            AvailableStatus: false,
           },
         }
       )
@@ -420,6 +423,7 @@ const step1 = async (req, res) => {
         ...datawithouturl,
         is_active: subscriptionActive,
         is_active_byConnectId: stripeConnected,
+        AvailableStatus: false,
       },
     });
 
@@ -598,6 +602,7 @@ const step2 = async (req, res) => {
       data: {
         ...data,
 
+        AvailableStatus: false,
         is_active: subscriptionActive,
         is_active_byConnectId: stripeConnected,
       }
@@ -786,7 +791,7 @@ const step3 = async (req, res) => {
 
   try {
     const ownerInfo = await prisma.ownerinfo.findFirst({
-      where: { userid: req.user.user.userid }
+      where: { userid: Number(req.user.user.userid) }
     })
 
     if (!ownerInfo) {
@@ -885,6 +890,8 @@ const step3 = async (req, res) => {
       },
     });
 
+
+
     if (!owner) {
       return res.status(404).json({ message: "Owner not found" });
     }
@@ -907,6 +914,7 @@ const step3 = async (req, res) => {
         houserules: data.rules,
         is_active: subscriptionActive,
         is_active_byConnectId: stripeConnected,
+        AvailableStatus: false,
       }
     })
 
@@ -977,6 +985,23 @@ const step3 = async (req, res) => {
       await prisma.propertysharedspaces.create({ data: { propertyid, sharedspacesid: id } })
     }
 
+    const ownerforemail = await prisma.User.findUnique(
+      {
+        where: { userid: Number(req.user.user.userid) }
+      }
+    )
+
+    console.log('email is',ownerforemail.email);
+    
+    await sendEmail(
+      ownerforemail.email,
+      "Congratulations!🎉 We have successfully saved changes your property info. If owner panel is locked, Please Subscribe! ",
+      propertyPublishedEmailTemplate(
+        owner.legalfullname,
+        property.propertytitle
+      )
+    );
+
     return res.status(200).json({
       message: "Property step 3 completed successfully",
       propertyid
@@ -985,7 +1010,7 @@ const step3 = async (req, res) => {
   } catch (error) {
     console.error("Step 3 Error:", error)
     return res.status(500).json({
-      message: "Error processing property step 3",
+      message: "Something went wrong while processing property step 3",
       error: error.message
     })
   }
@@ -1103,13 +1128,13 @@ const getProperties = async (req, res) => {
 const getPropertiesforowner = async (req, res) => {
   const { id } = req.params;
 
-  console.log('id....',id);
-  
-      
+  console.log('id....', id);
+
+
   try {
     if (id) {
-      
-        console.log('inside........');
+
+      console.log('inside........');
 
       const property = await prisma.property.findUnique({
         where: { propertyid: Number(id) },
@@ -1669,7 +1694,7 @@ const updateRoom = async (req, res) => {
     })
   }
 }
-export { step1,addRoom,  getPropertiesforowner  ,updateRoom,getRoom, toggleAvailability, step2, suspendProperty, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties };
+export { step1, addRoom, getPropertiesforowner, updateRoom, getRoom, toggleAvailability, step2, suspendProperty, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties };
 
 
 

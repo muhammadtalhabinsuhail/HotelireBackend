@@ -1,9 +1,9 @@
-function bookingConfirmedEmailTemplate(
-  ownerName = "Partner",
-  propertyName = "Your Property",
-  bookingId = "HB-XXXX",
-  checkIn = "N/A",
-  checkOut = "N/A"
+export function bookingConfirmedEmailTemplate(
+  ownerName,
+  propertyName,
+  bookingId,
+  checkIn,
+  checkOut
 ) {
   return `
 <!DOCTYPE html>
@@ -84,6 +84,28 @@ function bookingConfirmedEmailTemplate(
       padding: 45px 30px;
       text-align: center;
     }
+
+        /* CTA Button */
+    .cta-button {
+      display: inline-block;
+      margin: 30px auto 10px;
+      background: #59A5B2;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(89, 165, 178, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .cta-button:hover {
+      background: #4a8a99;
+      box-shadow: 0 8px 24px rgba(89, 165, 178, 0.4);
+      transform: translateY(-1px);
+    }
+
 
     .content-title {
       font-size: 20px;
@@ -238,6 +260,11 @@ function bookingConfirmedEmailTemplate(
             <strong>Check-out:</strong> ${checkOut}
           </p>
         </div>
+
+
+          <a href="https://www.hotelire.ca/owner/bookings" class="cta-button">
+          View Booking Details
+        </a>
 
         <div class="info-section">
           <div class="info-item">

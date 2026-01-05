@@ -2,6 +2,8 @@ import { email } from "zod";
 import prisma from "../config/prisma.js";
 import Stripe from "stripe";
 import { customerBookingConfirmedEmailTemplate } from "../utils/bookingConfirmedtoCustomerMail.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import { bookingConfirmedEmailTemplate } from "../utils/bookingConfirmedtoOwnerMail.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const SUPER_ADMIN_ACCOUNT = process.env.SUPER_ADMIN_STRIPE_ACCOUNT;
@@ -34,7 +36,7 @@ const createBooking = async (req, res) => {
 
     console.log("getinggggggggg date", checkInDate);
 
-  
+
 
     console.log("[v0] Creating booking with data:", {
       userId,
@@ -49,6 +51,29 @@ const createBooking = async (req, res) => {
     if (!userId || !propertyId || !checkInDate || !checkOutDate || !rooms || !paymentIntentId) {
       return res.status(400).json({
         error: "Missing required fields",
+      })
+    }
+
+    const user = await prisma.User.findUnique({
+      where: { userid: userId },
+    });
+
+
+    if (!user) {
+      return res.status(400).json({
+        error: "User was not found",
+      })
+    }
+
+    const property = await prisma.property.findUnique(
+      {
+        where: { propertyid: propertyId }
+      }
+    );
+
+    if (!property) {
+      return res.status(400).json({
+        error: "Property was not found",
       })
     }
 
@@ -91,17 +116,6 @@ const createBooking = async (req, res) => {
     }
 
     let newBookingdata;
-
-
-
-    // const formatDate = (isoString) => {
-    //   const date = new Date(isoString);
-    //   return date.toLocaleDateString("en-CA", {
-    //     year: "numeric",
-    //     month: "long",
-    //     day: "numeric",
-    //   });
-    // };
 
 
     const result = await prisma.$transaction(async (tx) => {
@@ -183,57 +197,64 @@ const createBooking = async (req, res) => {
       data: availabilityData,
     })
 
-    console.log("[v0] Room availability created:", availabilityData.length)
+    console.log(" Room availability created:", availabilityData.length)
 
 
 
 
 
-    //   userId,
-    //     propertyId,
-    //     checkInDate,
-    //     checkOutDate,
-    //     adults,
-    //     children,
-    //     rooms,
-    //     totalAmount,
-    //     totalNights,
-    //     paymentIntentId,
-    //     chargeId,;
-
-    //   customerName,
-    //     propertyName = "Property Name",
-    //     bookingId = "HB-XXXX",
-    //     checkIn = "N/A",
-    //     checkOut = "N/A",
-    //     guests = "N/A",
-    //     bookingUrl
 
 
 
-    //   const user = prisma.User.findUnique({
-    //     where: { userId: userId }
-    //   });
+    const bookingId = `CONF-${newBookingdata.bookingid}`;
 
-    //   if (!user) {
-    //     return res.status(400).json({
-    //       error: "User was not found",
-    //     })
-    //   }
+    const total_guests = Number(adults) + Number(children);
 
-    //   user.firstName
-    //   checkInDate
-    //   checkOutDate
-    //   newBookingdata.bookingId
-    //  const total_guests = Number(adults) + Number(children);
+    const bookingurl = `https://www.hotelire.ca/customer/hotel/${propertyId}/confirmation?bookingId=${newBookingdata.bookingid}`;
 
 
-    // await sendEmail(
-    //   req.user.user.email,
-    //   "Now You are the owner of Hotelire, Please Subscribe to show case your properties. 🎉",
-    //   customerBookingConfirmedEmailTemplate(req.user.user.firstname,,,,,,)
-    // );
-  // cvcv
+    await sendEmail(
+      user.email,
+      "Congratulations! your booking via Hotelire has been confirmed! 🎉",
+      customerBookingConfirmedEmailTemplate(
+        user.firstname,
+        property.propertytitle,
+        bookingId,
+        checkInDate,
+        checkOutDate,
+        total_guests,
+        bookingurl
+      )
+    );
+
+
+
+    const owner = await prisma.User.findUnique(
+      {
+        where: {
+          userid: property.userid
+        }
+      }
+    )
+
+    await sendEmail(
+      owner.email,
+      "Congratulations! You have got a booking via Hotelire! 🎉",
+      bookingConfirmedEmailTemplate(
+        owner.firstname,
+        property.propertytitle,
+        bookingId,
+        checkInDate,
+        checkOutDate
+      )
+    );
+
+
+
+
+
+
+
 
 
     res.status(201).json({

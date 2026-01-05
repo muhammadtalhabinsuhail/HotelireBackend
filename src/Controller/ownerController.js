@@ -5,6 +5,7 @@ import prisma from "../config/prisma.js";
 import { ca } from "react-day-picker/locale";
 import { normalizeCanadianPhone } from "../utils/ReusableFunction/normalizeCanadianPhone.js";
 import { ownerVerificationApprovedEmailTemplate } from "../utils/customerBecomesOwner.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 dotenv.config();
 

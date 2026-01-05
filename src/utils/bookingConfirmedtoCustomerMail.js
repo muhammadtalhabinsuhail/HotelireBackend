@@ -1,11 +1,11 @@
 export function customerBookingConfirmedEmailTemplate(
   customerName ,
-  propertyName = "Property Name",
-  bookingId = "HB-XXXX",
-  checkIn = "N/A",
-  checkOut = "N/A",
-  guests = "N/A",
-  bookingUrl = "https://hotelire.com/bookings"
+  propertyName,
+  bookingId,
+  checkIn,
+  checkOut,
+  guests,
+  bookingUrl
 ) {
   return `
 <!DOCTYPE html>
