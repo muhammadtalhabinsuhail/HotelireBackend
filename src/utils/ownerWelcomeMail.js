@@ -221,7 +221,7 @@ a:visited, a:hover, a:active {
           <p><strong>The Hotelire Team</strong></p>
           <p style="font-size:13px;color:#888;margin-top:10px;">
             Need help? Email us at
-            <a href="mailto:info@hotelire.ca" style="color:#59A5B2;">info@hotelire.ca</a>
+            <a href="mailto:info@hotelire.ca">info@hotelire.ca</a>
           </p>
         </div>
       </div>

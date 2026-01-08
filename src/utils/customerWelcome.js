@@ -1,0 +1,130 @@
+import nodemailer from "nodemailer";
+
+function welcomeCustomerEmailTemplate({ firstName }) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to Hotelire</title>
+
+  <style>
+    /* CSS unchanged as requested */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #f0f9fb 0%, #e8f4f8 100%);
+      color: #ffffffff;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .wrapper { max-width: 600px; margin: 0 auto; }
+    .container {
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(89, 165, 178, 0.12);
+      border: 1px solid rgba(89, 165, 178, 0.1);
+    }
+    .header { text-align: center; padding: 40px 30px; border-bottom: 3px solid #59A5B2; }
+    .header-logo { max-width: 160px; margin-bottom: 20px; }
+    .header-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .header-subtitle { font-size: 14px; color: #59A5B2; font-weight: 500; }
+    .content { padding: 40px 30px; }
+    .greeting { font-size: 15px; color: #555; margin-bottom: 20px; }
+    .greeting-name { color: #59A5B2; font-weight: 600; }
+    a { color: #ffffffff !important; text-decoration: none !important; }
+    a:visited, a:hover, a:active { color: inherit; text-decoration: none !important; }
+    .text { font-size: 15px; color: #555; margin-bottom: 25px; line-height: 1.7; }
+    .checklist-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #59A5B2; font-weight: 700; margin-bottom: 18px; }
+    .checklist-item { display: flex; gap: 12px; margin-bottom: 16px; font-size: 14px; color: #555; }
+    .icon  { width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; flex-shrink: 0; font-weight: 600; margin-top: 2px; }
+    .cta { text-align: center; margin: 35px 0; }
+    .cta-btn { background: #59A5B2; color: #ffffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block; }
+    .cta-btn:hover { background: #4a8a99; }
+    .closing { border-top: 1px solid #e8e8e8; padding-top: 25px; margin-top: 30px; }
+    .footer-bar { background: #FDB913; height: 12px; }
+    @media (max-width: 600px) { .content { padding: 30px 20px; } .header { padding: 30px 20px; } }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper">
+    <div class="container">
+
+      <div class="header">
+        <img
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Logo_orignal-ZIsyRe6nmIMtEEZfbMwxH2dMNVHAhy.png"
+          alt="Hotelire Logo"
+          class="header-logo"
+        />
+        <h1 class="header-title">Welcome to Hotelire</h1>
+        <p class="header-subtitle">Start booking hotels in Canada today</p>
+      </div>
+
+      <div class="content">
+        <p class="greeting">
+          Hello <span class="greeting-name">${firstName || "Customer"}</span>,
+        </p>
+
+        <p class="text">
+          Welcome to <strong>Hotelire</strong>! Your customer account has been successfully created.
+        </p>
+
+        <p class="text">
+          You can now browse and book the best hotels across Canada with ease.
+        </p>
+
+        <div class="checklist-title">Get Started</div>
+
+        <div class="checklist-item">
+          <div class="icon">🏨</div>
+          <div>Browse hotels by city, amenities, and ratings.</div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="icon">💳</div>
+          <div>Securely complete bookings and payments online.</div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="icon">📅</div>
+          <div>Check availability and plan your stay with ease.</div>
+        </div>
+
+        <div class="closing">
+          <p class="text">Thanks for choosing Hotelire,</p>
+          <p><strong>The Hotelire Team</strong></p>
+          <p style="font-size:13px;color:#888;margin-top:10px;">
+            Need help? Email us at
+            <a href="mailto:info@hotelire.ca" style="color:#59A5B2;">info@hotelire.ca</a>
+          </p>
+        </div>
+      </div>
+
+      <div class="footer-bar"></div>
+
+    </div>
+  </div>
+</body>
+</html>
+`;
+}
+
+export const sendWelcomeCustomerEmail = async ({ to, firstName }) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"Hotelire" <${process.env.SMTP_EMAIL}>`,
+    to,
+    subject: "Welcome to Hotelire – Start Booking Hotels in Canada",
+    html: welcomeCustomerEmailTemplate({ firstName }),
+  });
+};
