@@ -20,30 +20,29 @@ model states {
 }
 
 model User {
-  userid                 Int                   @id @default(autoincrement())
-  roleid                 Int?                  @default(3)
-  firstname              String                @db.VarChar(50)
-  lastname               String                @db.VarChar(50)
-  email                  String                @unique @db.VarChar(100)
-  passwordhash           String?               @db.VarChar(255)
-  address                String?               @db.VarChar(200)
+  userid                 Int              @id @default(autoincrement())
+  roleid                 Int?             @default(3)
+  firstname              String           @db.VarChar(50)
+  lastname               String           @db.VarChar(50)
+  email                  String           @unique @db.VarChar(100)
+  passwordhash           String?          @db.VarChar(255)
+  address                String?          @db.VarChar(200)
   canadian_provinceid    Int?
   canadian_cityid        Int?
-  international_country  String?               @db.VarChar(100)
-  international_province String?               @db.VarChar(100)
-  international_city     String?               @db.VarChar(100)
-  postalcode             String?               @db.VarChar(20)
-  phoneno                String?               @db.VarChar(20)
-  isemailverified        Boolean?              @default(false)
+  international_country  String?          @db.VarChar(100)
+  international_province String?          @db.VarChar(100)
+  international_city     String?          @db.VarChar(100)
+  postalcode             String?          @db.VarChar(20)
+  phoneno                String?          @db.VarChar(20)
+  isemailverified        Boolean?         @default(false)
   profilepic             String?
-  createdat              DateTime?             @default(now()) @db.Timestamp(6)
-  updatedat              DateTime?             @default(now()) @db.Timestamp(6)
-  isGoogleUser           Boolean?              @default(false)
-  canadian_cities        canadian_cities?      @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
-  canadian_states        canadian_states?      @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
-  role                   role?                 @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
+  createdat              DateTime?        @default(now()) @db.Timestamp(6)
+  updatedat              DateTime?        @default(now()) @db.Timestamp(6)
+  isGoogleUser           Boolean?         @default(false)
+  canadian_cities        canadian_cities? @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
+  canadian_states        canadian_states? @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
+  role                   role?            @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
   booking                booking[]
-  owner_subscriptions    owner_subscriptions[]
   ownerinfo              ownerinfo?
   property               property[]
   review                 review[]
@@ -85,7 +84,6 @@ model ownerinfo {
   subscription_status         String?                      @db.VarChar(100)
   subscription_id             String?                      @db.VarChar(100)
   current_period_end          DateTime?                    @default(now()) @db.Timestamptz(6)
-  owner_subscriptions         owner_subscriptions[]
   owner_residentialdocpdftype owner_residentialdocpdftype? @relation(fields: [pdftypeid], references: [pdftypeid], onDelete: NoAction, onUpdate: NoAction)
   owner_iddocpictype          owner_iddocpictype?          @relation(fields: [pictypeid], references: [pictypeid], onDelete: NoAction, onUpdate: NoAction)
   User                        User?                        @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
@@ -227,16 +225,6 @@ model sharedspaces {
   propertysharedspaces propertysharedspaces[]
 }
 
-model LocalTest {
-  Id          Int      @id
-  demagKharab String[]
-}
-
-model TestingLiveTable {
-  id       Int     @id @default(autoincrement())
-  datatest String?
-}
-
 model booking {
   bookingid         Int                 @id @default(autoincrement())
   userid            Int?
@@ -267,7 +255,7 @@ model booking_room {
   room_count     Int
   subtotal       Decimal       @db.Decimal(10, 2)
   booking        booking?      @relation(fields: [bookingid], references: [bookingid], onDelete: Cascade, onUpdate: NoAction)
-  propertyroom   propertyroom? @relation(fields: [propertyroomid], references: [propertyroomid], onDelete: NoAction, onUpdate: NoAction)
+  propertyroom   propertyroom? @relation(fields: [propertyroomid], references: [propertyroomid], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model payment {
@@ -301,20 +289,7 @@ model room_availability {
   rooms_booked   Int
   created_at     DateTime?     @default(now()) @db.Timestamp(6)
   booking        booking?      @relation(fields: [bookingid], references: [bookingid], onDelete: Cascade, onUpdate: NoAction)
-  propertyroom   propertyroom? @relation(fields: [propertyroomid], references: [propertyroomid], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model owner_subscriptions {
-  id                   Int        @id @default(autoincrement())
-  userid               Int?
-  ownerid              Int?
-  amount               Decimal?   @db.Decimal(10, 2)
-  currency             String     @default("CAD") @db.VarChar(10)
-  current_period_start DateTime?  @db.Timestamp(6)
-  current_period_end   DateTime?  @db.Timestamp(6)
-  created_at           DateTime?  @default(now()) @db.Timestamp(6)
-  ownerinfo            ownerinfo? @relation(fields: [ownerid], references: [ownerid], onDelete: Cascade, onUpdate: NoAction)
-  User                 User?      @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+  propertyroom   propertyroom? @relation(fields: [propertyroomid], references: [propertyroomid], onDelete: Cascade, onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

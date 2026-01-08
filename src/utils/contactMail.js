@@ -43,12 +43,16 @@ export const sendContactMail = async (req, res) => {
     /* ---------------- SEND MAIL ---------------- */
     await transporter.sendMail({
       from: `Hotelire Contact ${email}`,
-      to: "muhammadtalhabinsuhail@gmail.com",
+      to: process.env.SMTP_EMAIL,
       replyTo: email,
-      subject: "New Contact Us Message",
+      subject: "Hotelire Alert! New Contact Us Message",
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-          <h2 style="color:#59A5B2;">New Contact Message</h2>
+               <a href="https://hotelire.com">
+          <img src="https://res.cloudinary.com/dzzuoem1w/image/upload/v1767352509/logo_orignal_q0jn75.png" alt="Hotelire Logo" class="header-logo" />
+        </a>      
+
+         <center> <h2 style="color:#59A5B2;">New Contact Message</h2> </center>
           <p><strong>Name:</strong> ${firstName} ${lastName}</p>
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Message:</strong></p>

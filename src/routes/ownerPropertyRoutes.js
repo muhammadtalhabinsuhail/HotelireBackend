@@ -1,5 +1,5 @@
 import express from "express";
-import { step1, step2,addRoom,updateRoom,getRoom, suspendProperty ,getPropertiesforowner,toggleAvailability,getPropertyAmenities, getPropertySharedSpaces, getPropertySafetyFeatures, step3, fetchPropertyClassificationCategories, isRoomAvailableinProperty, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
+import { step1, step2,addRoom,deletePropertyRoomById,updateRoom,getRoom, suspendProperty ,getPropertiesforowner,toggleAvailability,getPropertyAmenities, getPropertySharedSpaces, getPropertySafetyFeatures, step3, fetchPropertyClassificationCategories, isRoomAvailableinProperty, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties } from "../Controller/ownerPropertyController.js";
 import { verifyAuthentication } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 
@@ -50,9 +50,10 @@ router.post(
   verifyAuthentication,
   isRoomAvailableinProperty
 );
+router.delete("/deletePropertyRoomById/:id", deletePropertyRoomById);
+
 
 router.post("/addRoom", verifyAuthentication, upload.any(), addRoom)
-
 router.post("/getPropertyAmenities", verifyAuthentication, getPropertyAmenities);
 router.post("/getPropertySafetyFeatures", verifyAuthentication, getPropertySafetyFeatures);
 router.post("/getPropertySharedSpaces", verifyAuthentication, getPropertySharedSpaces);

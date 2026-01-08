@@ -319,7 +319,7 @@
 //         <p>Your perfect stay is one click away!</p>
 //       </div>
 
-     
+
 //       <!-- Content -->
 //       <div class="content">
 //         <h2 class="content-title">Welcome to Hotelire</h2>
@@ -717,9 +717,9 @@ function verificationEmailTemplate(code) {
     <div class="container">
       <!-- Header -->
       <div class="header">
-        <!-- Added Hotelire logo -->
-        <img src="/images/logo-orignal.png" alt="Hotelire Logo" class="header-logo" />
-        <h1>Verify Your Email</h1>
+ <a href="https://hotelire.com">
+          <img src="https://res.cloudinary.com/dzzuoem1w/image/upload/v1767352509/logo_orignal_q0jn75.png" alt="Hotelire Logo" class="header-logo" />
+        </a>         <h1>Verify Your Email</h1>
         <p>Your perfect stay is one click away!</p>
       </div>
 

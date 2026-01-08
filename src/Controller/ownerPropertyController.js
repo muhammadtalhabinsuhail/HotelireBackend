@@ -1694,7 +1694,58 @@ const updateRoom = async (req, res) => {
     })
   }
 }
-export { step1, addRoom, getPropertiesforowner, updateRoom, getRoom, toggleAvailability, step2, suspendProperty, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties };
+
+
+
+
+ const deletePropertyRoomById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid room id",
+      });
+    }
+
+    const roomId = Number(id);
+
+    // 1️⃣ Check room exists
+    const existingRoom = await prisma.propertyroom.findUnique({
+      where: { propertyroomid: roomId },
+      select: { propertyroomid: true },
+    });
+
+    if (!existingRoom) {
+      return res.status(404).json({
+        success: false,
+        message: "Room not found",
+      });
+    }
+
+    // 2️⃣ Delete room
+    // Related booking_room & room_availability will auto delete (CASCADE)
+    await prisma.propertyroom.delete({
+      where: { propertyroomid: roomId },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Room deleted successfully",
+    });
+
+  } catch (error) {
+    console.error("Delete room error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export { step1,deletePropertyRoomById, addRoom, getPropertiesforowner, updateRoom, getRoom, toggleAvailability, step2, suspendProperty, getPropertySafetyFeatures, getPropertyAmenities, getPropertySharedSpaces, isRoomAvailableinProperty, step3, fetchPropertyClassificationCategories, getRoomTypes, getSafetyFeatures, getSharedSpaces, getAmenities, getProperties, getSpecificOwnerProperties };
 
 
 

@@ -22,15 +22,46 @@ const createOwnerSubscription = async (req, res) => {
 
     if (!ownerInfo) return res.status(404).json({ error: "Owner not found" });
 
+    if (!paymentMethodId) {
+      return res.status(400).json({ error: "Payment method missing" })
+    }
+
+
+    const idempotencyKey =
+      req.headers["x-idempotency-key"] || `sub-${userId}-${Date.now()}`;
+
+
     let stripeCustomerId = ownerInfo.stripe_customer_id;
 
-    
+    let customer = null;
+
+    if (stripeCustomerId) {
+      try {
+        customer = await stripe.customers.retrieve(stripeCustomerId);
+
+        // Deleted or invalid
+        if (!customer || customer.deleted) {
+          stripeCustomerId = null;
+        }
+
+      } catch (err) {
+        // Customer ID invalid / wrong account
+        stripeCustomerId = null;
+      }
+    }
+
+
+
     if (!stripeCustomerId) {
       const user = await prisma.User.findUnique({ where: { userid: userId } });
 
       const customer = await stripe.customers.create({
         email: user.email,
         name: ownerInfo.legalfullname,
+        metadata: {
+          userId: String(userId),
+          ownerId: String(ownerInfo.ownerid),
+        },
       });
 
       stripeCustomerId = customer.id;
@@ -44,50 +75,65 @@ const createOwnerSubscription = async (req, res) => {
     // attach card
     await stripe.paymentMethods.attach(paymentMethodId, {
       customer: stripeCustomerId,
-    });
+    },
+      { idempotencyKey: `pm-attach-${paymentMethodId}-${userId}` });
+    // ignore "already attached"
+
 
     await stripe.customers.update(stripeCustomerId, {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
 
-    // STEP 1 — create subscription
     const subscription = await stripe.subscriptions.create({
       customer: stripeCustomerId,
-      items: [
-        {
-          price: process.env.STRIPE_OWNER_SUBSCRIPTION_PRICE_ID,
-        },
-      ],
-      payment_behavior: "default_incomplete",   // REQUIRED
+      items: [{
+        price: process.env.STRIPE_OWNER_SUBSCRIPTION_PRICE_ID,
+      }],
+      default_payment_method: paymentMethodId,   // 🔥 IMPORTANT
+      payment_behavior: "default_incomplete",
       expand: ["latest_invoice.payment_intent"],
-      metadata: {
-        userId: String(userId),
-        ownerId: String(ownerInfo.ownerid)
-      },
-    });
+
+    },
+      {
+        idempotencyKey: `sub-create-${userId}-${Date.now()}`
+      });
+
+
 
     await prisma.ownerinfo.update({
       where: { ownerid: ownerInfo.ownerid },
       data: {
         subscription_id: subscription.id,
-        subscription_status: subscription.status,
       },
     });
-    // ------------------------------------------------------------------
-    // STEP 2 — safely get invoice
-    // ------------------------------------------------------------------
+
+
     let invoice = subscription.latest_invoice;
 
+    // 1) ensure full invoice object
     if (typeof invoice === "string") {
       invoice = await stripe.invoices.retrieve(invoice, {
         expand: ["payment_intent"],
       });
     }
 
-    // ------------------------------------------------------------------
-    // STEP 3 — if still NO PI => CREATE IT NOW (THIS FIXES YOUR ISSUE)
-    // ------------------------------------------------------------------
-    if (!invoice.payment_intent) {
+    // 2) attach PM to invoice
+    await stripe.invoices.update(invoice.id, {
+      default_payment_method: paymentMethodId,
+    });
+
+    if (invoice.status === "paid") {
+      return res.json({
+        success: true,
+        subscriptionId: subscription.id,
+        status: "active",
+        message: "Invoice already paid",
+      });
+    }
+
+
+    // 3) finalize only if draft
+   if (!invoice.payment_intent) {
       const paid = await stripe.invoices.pay(invoice.id, {
         payment_method: paymentMethodId,
         expand: ["payment_intent"],
@@ -96,11 +142,10 @@ const createOwnerSubscription = async (req, res) => {
       invoice = paid;
     }
 
-    // ------------------------------------------------------------------
-    // STEP 4 — FINAL GUARANTEE
-    // ------------------------------------------------------------------
+    // 4) get PI now
     let paymentIntent = invoice.payment_intent;
 
+    // 5) fallback — create if still missing
     if (!paymentIntent) {
       paymentIntent = await stripe.paymentIntents.create({
         amount: invoice.amount_due,
@@ -113,19 +158,15 @@ const createOwnerSubscription = async (req, res) => {
           enabled: true,
           allow_redirects: "never",
         },
-      });
-
-
+      },
+        {
+          idempotencyKey: `pi-${subscription.id}-${Date.now()}`
+        });
     }
 
+    // 6) GUARANTEED SAFE HERE
     const clientSecret = paymentIntent.client_secret;
 
-
-    console.log("Client Secret:,,,,,,,", clientSecret);
-
-
-
-    // save subscription data
 
 
     return res.json({
@@ -139,6 +180,8 @@ const createOwnerSubscription = async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 };
+
+
 
 const getSubscriptionClientSecret = async (req, res) => {
   const { subscriptionId } = req.params;
@@ -162,292 +205,6 @@ const getSubscriptionClientSecret = async (req, res) => {
     status: intent.status,
   });
 };
-
-
-
-// const createOwnerSubscription = async (req, res) => {
-//   try {
-//     if (!req.user) {
-//       return res.status(401).json({ message: "User is not authenticated" });
-//     }
-
-//     const { paymentMethodId } = req.body;
-//     const userId = req.user.user.userid;
-
-//     if (!paymentMethodId) {
-//       return res.status(400).json({ error: "Payment method is required" });
-//     }
-
-//     // Check if owner exists
-//     const ownerInfo = await prisma.ownerinfo.findUnique({
-//       where: { userid: userId },
-//     });
-
-//     if (!ownerInfo) {
-//       return res.status(404).json({ error: "Owner information not found" });
-//     }
-
-//     // Create Stripe customer for owner if not exists
-//     let stripeCustomerId = ownerInfo.stripe_customer_id;
-
-//     if (!stripeCustomerId) {
-//       const user = await prisma.User.findUnique({
-//         where: { userid: userId },
-//       });
-
-//       const customer = await stripe.customers.create({
-//         email: user.email,
-//         name: ownerInfo.legalfullname,
-//         metadata: { ownerid: ownerInfo.ownerid, userid: userId },
-//       });
-
-//       stripeCustomerId = customer.id;
-
-//       // Save customer ID in database
-//       await prisma.ownerinfo.update({
-//         where: { ownerid: ownerInfo.ownerid },
-//         data: { stripe_customer_id: stripeCustomerId },
-//       });
-//     }
-
-//     // Attach payment method to customer
-//     await stripe.paymentMethods.attach(paymentMethodId, {
-//       customer: stripeCustomerId,
-//     });
-
-//     // Set as default payment method
-//     await stripe.customers.update(stripeCustomerId, {
-//       invoice_settings: { default_payment_method: paymentMethodId },
-//     });
-
-//     // Create subscription for CAD 10/month
-//     // const subscription = await stripe.subscriptions.create({
-//     //   customer: stripeCustomerId,
-
-
-//     //   items: [
-//     //     {
-//     //       price: process.env.STRIPE_OWNER_SUBSCRIPTION_PRICE_ID,
-//     //       quantity: 1,
-//     //     },
-//     //   ],
-
-//     //   default_payment_method: paymentMethodId,   // 🔥 required
-
-//     //   trial_period_days: 0,
-//     //   collection_method: "charge_automatically",
-
-
-//     //   payment_behavior: "default_incomplete",
-
-//     //   payment_settings: {
-//     //     payment_method_types: ["card"],
-//     //     save_default_payment_method: "on_subscription",
-//     //   },
-//     //   expand: ["latest_invoice.payment_intent"],
-
-//     // });
-
-// // const subscription = await stripe.subscriptions.create({
-// //   customer: stripeCustomerId,
-
-// //   items: [
-// //     {
-// //       price: process.env.STRIPE_OWNER_SUBSCRIPTION_PRICE_ID,
-// //       quantity: 1,
-// //     },
-// //   ],
-
-// //   // charge immediately and monthly recurring
-// //   collection_method: "charge_automatically",
-
-// //   // this is REQUIRED to bill immediately and return client_secret
-// //   payment_behavior: "default_incomplete",
-
-// //   default_payment_method: paymentMethodId,
-
-// //   // payment_settings: {
-// //   //   payment_method_types: ["card"],
-// //   //   save_default_payment_method: "on_subscription",
-// //   // },
-
-// //   // trial_period_days: 0,
-
-// // //  expand: ['latest_invoice.payment_intent'],
-// // });
-
-
-//     const subscription = await stripe.subscriptions.create({
-//       customer: stripeCustomerId,
-//       items: [
-//         {
-
-//            price: process.env.STRIPE_OWNER_SUBSCRIPTION_PRICE_ID,
-//     //       quantity: 1,
-//         },
-//       ],
-//       default_payment_method: paymentMethodId,
-//       collection_method: "charge_automatically",
-//       payment_behavior: "default_incomplete", // 🔥 REQUIRED to get client_secret
-//       payment_settings: {
-//         payment_method_types: ["card"],
-//         save_default_payment_method: "on_subscription",
-//       },
-//       expand: ["latest_invoice.payment_intent"], // Get payment intent details
-//     });
-
-//     console.log("Stripe subscription created:", {
-//       id: subscription.id,
-//       status: subscription.status,
-//       has_latest_invoice: !!subscription.latest_invoice,
-//       latest_invoice_id: subscription.latest_invoice?.id,
-//       payment_intent_id: subscription.latest_invoice?.payment_intent?.id,
-//     });
-
-
-// // const clientSecret =
-// //   subscription.latest_invoice.payment_intent.client_secret;
-
-// //   console.log(clientSecret);
-
-
-//     console.log({
-//       status: subscription.status,
-//       amount_due: subscription?.latest_invoice?.amount_due,
-//       collection_method: subscription?.latest_invoice?.collection_method,
-//       pending_setup_intent: subscription?.pending_setup_intent,
-//     });
-
-
-
-//     // Save subscription in ownerinfo table
-//     await prisma.ownerinfo.update({
-//       where: { ownerid: ownerInfo.ownerid },
-//       data: {
-//         stripe_customer_id: stripeCustomerId,
-//         subscription_id: subscription.id,
-//         subscription_status: subscription.status,
-
-//         // Stripe returns Unix seconds — guard for undefined
-//         current_period_end: subscription.current_period_end
-//           ? new Date(subscription.current_period_end * 1000)
-//           : null,
-//       },
-//     });
-
-
-//     console.log("SUBSCRIPTION STATUS:", subscription.status);
-
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Subscription created successfully",
-//       subscription: {
-//         subscriptionId: subscription.id,
-//         status: subscription.status,
-//         amount: 10,
-//         currency: "CAD",
-//         nextBillingDate: new Date(subscription.current_period_end * 1000),
-//       },
-//       // clientSecret: clientSecret,
-
-//     });
-//   } catch (error) {
-//     console.error("Subscription creation error:", error.message);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
-
-
-
-// const getOwnerSubscriptionDetails = async (req, res) => {
-
-//    try {
-//     if (!req.user) {
-//       return res.status(401).json({ message: "Unauthorized" });
-//     }
-
-//     const userId = req.user.user.userid;
-
-//     const owner = await prisma.ownerinfo.findUnique({
-//       where: { userid: userId },
-//     });
-
-//     if (!owner || !owner.subscription_id) {
-//       return res.status(404).json({ message: "No subscription found" });
-//     }
-
-//     // 1️⃣ main subscription
-//     const subscription = await stripe.subscriptions.retrieve(
-//       owner.subscription_id,
-//       { expand: ["items", "latest_invoice"] }
-//     );
-
-//     // 2️⃣ all invoices for this subscription
-//     const invoices = await stripe.invoices.list({
-//       subscription: owner.subscription_id,
-//       limit: 100,
-//       expand: ["data.charge"],
-//     });
-
-//     // 3️⃣ compute totals
-//     let totalPaid = 0;
-//     let paidMonths = 0;
-
-//     const invoiceHistory = invoices.data.map((inv) => {
-//       const paid = inv.paid;
-//       const amount = inv.amount_paid / 100;
-
-//       if (paid) {
-//         totalPaid += amount;
-//         paidMonths += 1;
-//       }
-
-//       return {
-//         invoiceId: inv.id,
-//         amount,
-//         status: inv.status,
-//         paid,
-//         hostedInvoiceUrl: inv.hosted_invoice_url,
-//         invoicePdf: inv.invoice_pdf,
-//         createdAt: inv.created * 1000,
-//         periodStart: inv.period_start * 1000,
-//         periodEnd: inv.period_end * 1000,
-//       };
-//     });
-
-//     res.json({
-//       subscriptionId: subscription.id,
-//       status: subscription.status,
-
-//       currentPeriodStart: subscription.current_period_start * 1000,
-//       currentPeriodEnd: subscription.current_period_end * 1000,
-
-//       pricePerMonth:
-//         subscription.items.data[0].price.unit_amount / 100,
-
-//       totalPaid,
-//       currency: subscription.currency.toUpperCase(),
-//       paidMonths,
-
-//       hasIncompletePayment:
-//         invoiceHistory.some((i) => i.status !== "paid"),
-
-//       nextBillingDate: subscription.current_period_end * 1000,
-
-//       history: invoiceHistory,
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({
-//       message: "Failed to fetch subscription full history",
-//     });
-//   }
-
-// };
-
-
 
 const getOwnerSubscriptionDetails = async (req, res) => {
   try {
@@ -570,15 +327,6 @@ const getOwnerSubscriptionDetails = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
-
-
 
 
 

@@ -277,7 +277,8 @@ router.post(
     // ===============================
     // SUBSCRIPTION EVENTS
     // ===============================
-    if (obj.object === "subscription") {
+     if (obj.object === "subscription") {
+ 
       const subscriptionId = obj.id;
       const status = obj.status;
 
@@ -336,10 +337,8 @@ router.post(
           subscriptionActivatedEmailTemplate(user.firstname)
         );
 
-        console.log()
-      }
-
-      if (!activate) {
+        console.log("sent email")
+      } else{
         await sendEmail(
           user.email,
           "Your Hotelire Subscription is not Activated",

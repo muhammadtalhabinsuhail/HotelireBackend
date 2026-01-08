@@ -207,7 +207,7 @@ export function propertyPublishedEmailTemplate(ownerName, propertyName) {
 
       <!-- Header -->
       <div class="header">
-       <a href="https://hotelire.com">
+       <a href="https://hotelire.ca">
           <img src="https://res.cloudinary.com/dzzuoem1w/image/upload/v1767352509/logo_orignal_q0jn75.png" alt="Hotelire Logo" class="header-logo" />
         </a>        <h1>Property changes has been saved Successfully 🎉</h1>
         <p>Your listing is now live on Hotelire</p>

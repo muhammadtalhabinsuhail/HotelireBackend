@@ -57,16 +57,18 @@ router.post("/create-intent", async (req, res) => {
       });
     }
 
-    // Calculate fees: 2.9% + $0.30 CAD goes to super admin
-   
     // Create payment intent with destination charge to owner
     const paymentIntent = await stripe.paymentIntents.create({
       amount: stripeAmount,
       currency: "cad",
-      payment_method_types: ["card"],
+      automatic_payment_methods: { enabled: true },
       transfer_data: {
         destination: ownerConnectAccount,
       },
+      transfer_group: `property_${propertyId}`,   //Helps refunds & reconciliation:
+      on_behalf_of: ownerConnectAccount,   //puts tax responsibility on owner
+
+      statement_descriptor_suffix: "HOTELIRE",
       metadata: {
         propertyId: propertyId,
         ownerId: property.userid,

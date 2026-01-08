@@ -123,8 +123,13 @@ const connectStripeAccount = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        console.log('stripe',stripe);
-        
+        console.log('stripe', stripe);
+
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new Error("Stripe secret key missing");
+        }
+
+
         const userId = req.user.user.userid;
 
         const ownerInfo = await prisma.ownerinfo.findUnique({
@@ -149,6 +154,11 @@ const connectStripeAccount = async (req, res) => {
                     card_payments: { requested: true },
                     transfers: { requested: true },
                 },
+
+                metadata: {
+                    userId: String(userId),
+                    ownerId: String(ownerInfo.ownerid),
+                },
             });
 
             connectAccountId = account.id;
@@ -159,9 +169,9 @@ const connectStripeAccount = async (req, res) => {
             });
 
             await prisma.property.updateMany({
-                where:{userid:ownerInfo.userid},
-                data:{
-                    is_active_byConnectId:true
+                where: { userid: ownerInfo.userid },
+                data: {
+                    is_active_byConnectId: true
                 }
             })
 
