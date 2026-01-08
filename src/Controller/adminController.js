@@ -260,7 +260,6 @@ export const getAllOwners = async (req, res) => {
       where: { roleid: 2 }, // Only owners
       include: {
         ownerinfo: true,
-        owner_subscriptions: true,
         property: true,
         booking: true,
         canadian_cities: true,
@@ -270,7 +269,7 @@ export const getAllOwners = async (req, res) => {
 
     // Transform data to match frontend expectations
     const formattedOwners = owners.map((owner) => {
-      const activeSubscription = owner.owner_subscriptions.find((sub) => new Date(sub.current_period_end) > new Date())
+      // const activeSubscription = owner.owner_subscriptions.find((sub) => new Date(sub.current_period_end) > new Date())
 
       return {
         id: owner.userid,
@@ -305,9 +304,9 @@ export const getOwnerById = async (req, res) => {
       where: { userid: Number(id) },
       include: {
         ownerinfo: {
-          include: {
-            owner_subscriptions: true,
-          },
+          // include: {
+          //   owner_subscriptions: true,
+          // },
         },
         property: {
           include: {
@@ -362,14 +361,14 @@ export const getOwnerById = async (req, res) => {
     })
 
     // Subscriptions data
-    const subscriptions = owner.ownerinfo?.owner_subscriptions || []
+    const subscriptions = owner.ownerinfo?.is_active
 
 
     // Correct total bookings for owner's properties
-    let totalBookingsForOwnerProperties = 0;
+    let totalBookings = 0;
 
     owner.property.forEach((property) => {
-      totalBookingsForOwnerProperties += property.booking.length;
+      totalBookings += property.booking.length;
     });
 
 
@@ -390,7 +389,7 @@ export const getOwnerById = async (req, res) => {
       },
       subscriptionStatus: owner.ownerinfo?.subscription_status || "inactive",
       totalProperties: owner.property.length,
-      totalBookings: totalBookingsForOwnerProperties,
+      totalBookings: totalBookings,
       totalRevenue,
       properties: formattedProperties,
       subscriptions: subscriptions.map((sub) => ({
@@ -459,6 +458,8 @@ export const createOwner = async (req, res) => {
       },
     })
 
+       
+        
     // Create ownerinfo record
     await prisma.ownerinfo.create({
       data: {
@@ -952,3 +953,142 @@ export const getStripePayments = async (req, res) => {
 };
 
 
+
+
+
+
+export const getAllCustomers = async (req, res) => {
+  try {
+    const customers = await prisma.User.findMany({
+      where: { roleid: 3 },
+      include: {
+        booking: {
+          include: {
+            property: true
+          }
+        },
+        canadian_cities: true,
+        canadian_states: true
+      },
+    })
+
+    const formattedCustomers = customers.map((customer) => ({
+      id: customer.userid,
+      fullName: `${customer.firstname} ${customer.lastname}`,
+      email: customer.email,
+      city: customer.canadian_cities?.canadian_city_name || customer.international_city || "N/A",
+      province: customer.canadian_states?.canadian_province_name || customer.international_province || "N/A",
+      totalBookings: customer.booking.length,
+      status: customer.isemailverified ? "active" : "inactive",
+      phone: customer.phoneno,
+      address: customer.address,
+    }))
+
+    res.status(200).json(formattedCustomers)
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching customers", error: error.message })
+  }
+}
+
+export const getCustomerById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const customer = await prisma.User.findUnique({
+      where: { userid: Number(id) },
+      include: {
+        booking: {
+          include: {
+            property: {
+              include: {
+                User: true
+              }
+            }
+          }
+        },
+        canadian_cities: true,
+        canadian_states: true,
+      },
+    })
+
+    if (!customer || customer.roleid !== 3) {
+      return res.status(404).json({ message: "Customer not found" })
+    }
+
+    let totalSpent = 0
+    customer.booking.forEach((b) => {
+      totalSpent += Number.parseFloat(b.total_amount || 0)
+    })
+
+    const formattedBookings = customer.booking.map((b) => ({
+      id: b.bookingid,
+      checkIn: b.checkin_date,
+      checkOut: b.checkout_date,
+      amount: b.total_amount,
+      status: b.booking_status,
+      property: {
+        title: b.property?.propertytitle,
+        image: b.property?.photo1_featured,
+        owner: b.property?.User ? `${b.property.User.firstname} ${b.property.User.lastname}` : "N/A"
+      }
+    }))
+
+    res.status(200).json({
+      id: customer.userid,
+      fullName: `${customer.firstname} ${customer.lastname}`,
+      email: customer.email,
+      phone: customer.phoneno,
+      address: customer.address,
+      city: customer.canadian_cities?.canadian_city_name || customer.international_city || "N/A",
+      province: customer.canadian_states?.canadian_province_name || customer.international_province || "N/A",
+      postalCode: customer.postalcode,
+      status: customer.isemailverified ? "active" : "inactive",
+      totalBookings: customer.booking.length,
+      totalSpent,
+      bookings: formattedBookings
+    })
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching customer details", error: error.message })
+  }
+}
+
+export const createCustomer = async (req, res) => {
+  try {
+    const { firstname, lastname, email, passwordhash, phoneno, address, postalcode, canadian_provinceid, canadian_cityid } = req.body
+    
+    const existing = await prisma.User.findUnique({ where: { email } })
+    if (existing) {
+      return res.status(400).json({ message: "Email already exists" })
+    }
+
+        const hashedPassword = await bcrypt.hash(passwordhash, 10)
+
+    const customer = await prisma.User.create({
+      data: {
+        firstname,
+        lastname,
+        email,
+        passwordhash: hashedPassword, // Assumes pre-hashed as per owner logic
+        phoneno,
+        address,
+        postalcode,
+        canadian_provinceid: Number(canadian_provinceid),
+        canadian_cityid: Number(canadian_cityid),
+        roleid: 3,
+        isemailverified: true
+      }
+    })
+    res.status(201).json(customer)
+  } catch (error) {
+    res.status(500).json({ message: "Error creating customer", error: error.message })
+  }
+}
+
+export const deleteCustomer = async (req, res) => {
+  try {
+    const { id } = req.params
+    await prisma.User.delete({ where: { userid: Number(id) } })
+    res.status(204).send()
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting customer", error: error.message })
+  }
+}

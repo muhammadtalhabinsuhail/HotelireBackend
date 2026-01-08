@@ -34,7 +34,11 @@ import {
   createOwner,
   deleteOwner,
   getAllPropertiesForAdmin,
-  getStripePayments
+  getStripePayments,
+  getAllCustomers,
+  getCustomerById,
+  createCustomer,
+  deleteCustomer
 } from "../Controller/adminController.js"
 
 const router = express.Router()
@@ -54,6 +58,11 @@ router.get("/properties/:id", getPropertyById)
 router.get("/getAllPropertiesForAdmin", getAllPropertiesForAdmin)
 
 
+// Customers routes
+router.get("/customers", getAllCustomers)
+router.post("/customers", createCustomer)
+router.get("/customers/:id", getCustomerById)
+router.delete("/customers/:id", deleteCustomer)
 
 
 router.get("/payments", getStripePayments)
