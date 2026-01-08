@@ -20,29 +20,30 @@ model states {
 }
 
 model User {
-  userid                 Int              @id @default(autoincrement())
-  roleid                 Int?             @default(3)
-  firstname              String           @db.VarChar(50)
-  lastname               String           @db.VarChar(50)
-  email                  String           @unique @db.VarChar(100)
-  passwordhash           String?          @db.VarChar(255)
-  address                String?          @db.VarChar(200)
+  userid                 Int                   @id @default(autoincrement())
+  roleid                 Int?                  @default(3)
+  firstname              String                @db.VarChar(50)
+  lastname               String                @db.VarChar(50)
+  email                  String                @unique @db.VarChar(100)
+  passwordhash           String?               @db.VarChar(255)
+  address                String?               @db.VarChar(200)
   canadian_provinceid    Int?
   canadian_cityid        Int?
-  international_country  String?          @db.VarChar(100)
-  international_province String?          @db.VarChar(100)
-  international_city     String?          @db.VarChar(100)
-  postalcode             String?          @db.VarChar(20)
-  phoneno                String?          @db.VarChar(20)
-  isemailverified        Boolean?         @default(false)
+  international_country  String?               @db.VarChar(100)
+  international_province String?               @db.VarChar(100)
+  international_city     String?               @db.VarChar(100)
+  postalcode             String?               @db.VarChar(20)
+  phoneno                String?               @db.VarChar(20)
+  isemailverified        Boolean?              @default(false)
   profilepic             String?
-  createdat              DateTime?        @default(now()) @db.Timestamp(6)
-  updatedat              DateTime?        @default(now()) @db.Timestamp(6)
-  isGoogleUser           Boolean?         @default(false)
-  canadian_cities        canadian_cities? @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
-  canadian_states        canadian_states? @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
-  role                   role?            @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
+  createdat              DateTime?             @default(now()) @db.Timestamp(6)
+  updatedat              DateTime?             @default(now()) @db.Timestamp(6)
+  isGoogleUser           Boolean?              @default(false)
+  canadian_cities        canadian_cities?      @relation(fields: [canadian_cityid], references: [canadian_city_id], onDelete: NoAction, onUpdate: NoAction)
+  canadian_states        canadian_states?      @relation(fields: [canadian_provinceid], references: [canadian_province_id], onDelete: NoAction, onUpdate: NoAction)
+  role                   role?                 @relation(fields: [roleid], references: [roleid], onDelete: NoAction, onUpdate: NoAction)
   booking                booking[]
+  owner_subscriptions    owner_subscriptions[]
   ownerinfo              ownerinfo?
   property               property[]
   review                 review[]
@@ -84,6 +85,7 @@ model ownerinfo {
   subscription_status         String?                      @db.VarChar(100)
   subscription_id             String?                      @db.VarChar(100)
   current_period_end          DateTime?                    @default(now()) @db.Timestamptz(6)
+  owner_subscriptions         owner_subscriptions[]
   owner_residentialdocpdftype owner_residentialdocpdftype? @relation(fields: [pdftypeid], references: [pdftypeid], onDelete: NoAction, onUpdate: NoAction)
   owner_iddocpictype          owner_iddocpictype?          @relation(fields: [pictypeid], references: [pictypeid], onDelete: NoAction, onUpdate: NoAction)
   User                        User?                        @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction)
@@ -174,19 +176,20 @@ model propertylocation {
 }
 
 model propertyroom {
-  propertyroomid    Int                 @id @default(autoincrement())
-  propertyid        Int?
-  roomtypeid        Int?
-  roomname          String?             @db.VarChar(255)
-  roomcount         Int?
-  price             Decimal?            @db.Decimal(10, 2)
-  available         Boolean?            @default(true)
-  pic1              String?
-  pic2              String?
-  booking_room      booking_room[]
-  property          property?           @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
-  roomtype          roomtype?           @relation(fields: [roomtypeid], references: [roomtypeid], onDelete: NoAction, onUpdate: NoAction)
-  room_availability room_availability[]
+  propertyroomid      Int                   @id @default(autoincrement())
+  propertyid          Int?
+  roomtypeid          Int?
+  roomname            String?               @db.VarChar(255)
+  roomcount           Int?
+  price               Decimal?              @db.Decimal(10, 2)
+  available           Boolean?              @default(true)
+  pic1                String?
+  pic2                String?
+  booking_room        booking_room[]
+  owner_subscriptions owner_subscriptions[]
+  property            property?             @relation(fields: [propertyid], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
+  roomtype            roomtype?             @relation(fields: [roomtypeid], references: [roomtypeid], onDelete: NoAction, onUpdate: NoAction)
+  room_availability   room_availability[]
 }
 
 model propertysafetyfeatures {
@@ -308,4 +311,19 @@ model review {
   booking          booking   @relation(fields: [booking_id], references: [bookingid], onDelete: Cascade, onUpdate: NoAction)
   property         property  @relation(fields: [property_id], references: [propertyid], onDelete: Cascade, onUpdate: NoAction)
   User             User      @relation(fields: [user_id], references: [userid], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model owner_subscriptions {
+  id                   Int           @id @default(autoincrement())
+  userid               Int?
+  ownerid              Int?
+  propertyroomid       Int?
+  amount               Decimal?      @db.Decimal(10, 2)
+  currency             String        @default("CAD") @db.VarChar(10)
+  current_period_start DateTime?     @db.Timestamp(6)
+  current_period_end   DateTime?     @db.Timestamp(6)
+  created_at           DateTime?     @default(now()) @db.Timestamp(6)
+  ownerinfo            ownerinfo?    @relation(fields: [ownerid], references: [ownerid], onDelete: Cascade, onUpdate: NoAction, map: "fk_owner_subscriptions_owner")
+  propertyroom         propertyroom? @relation(fields: [propertyroomid], references: [propertyroomid], onDelete: Cascade, onUpdate: NoAction, map: "fk_owner_subscriptions_propertyroom")
+  User                 User?         @relation(fields: [userid], references: [userid], onDelete: Cascade, onUpdate: NoAction, map: "fk_owner_subscriptions_user")
 }
