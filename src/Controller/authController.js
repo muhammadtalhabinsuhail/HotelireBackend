@@ -16,7 +16,10 @@ import { sendWelcomeCustomerEmail } from "../utils/customerWelcome.js";
 
 dotenv.config();
 
+
 const isProd = process.env.NODE_ENV === "production";
+
+
 const OAUTH_EXCHANGE_EXPIRY = 10 * 60 * 1000; // 10 minutes
 const google = new Google(
   process.env.GOOGLE_CLIENT_ID,

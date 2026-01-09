@@ -637,6 +637,49 @@ const getOwnerOverviewData = async (req, res) => {
 
 
 
+ const checkOwnerDocuments = async (req, res) => {
+  try {
+    if (!req.user || !req.user.user || !req.user.user.userid) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const userId = req.user.user.userid;
+
+    const ownerInfo = await prisma.ownerinfo.findUnique({
+      where: { userid: userId },
+      select: {
+        iddocpic: true,
+        residentialdocpdf: true,
+      },
+    });
+
+    if (!ownerInfo) {
+      return res.status(404).json({
+        success: false,
+        documentsComplete: false,
+        message: "Owner info not found",
+      });
+    }
+
+    const documentsComplete =
+      Boolean(ownerInfo.iddocpic) &&
+      Boolean(ownerInfo.residentialdocpdf);
+
+    return res.status(200).json({
+      success: true,
+      documentsComplete,
+    });
+  } catch (error) {
+    console.error("checkOwnerDocuments error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
 
 
 
@@ -644,5 +687,4 @@ const getOwnerOverviewData = async (req, res) => {
 
 
 
-
-export { createOwnerInfo, getOwnerOverviewData, getOwnerRevenueStats, getOwnerTransactions, fetchOwnerIdDocPic_Categories, fetchOwnerResidentialDocPdf_Categories }; 
+export { createOwnerInfo, checkOwnerDocuments, getOwnerOverviewData, getOwnerRevenueStats, getOwnerTransactions, fetchOwnerIdDocPic_Categories, fetchOwnerResidentialDocPdf_Categories }; 
