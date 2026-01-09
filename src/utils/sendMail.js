@@ -792,11 +792,21 @@ function verificationEmailTemplate(code) {
 
 export const sendEmail = async (to, code) => {
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    // service: "gmail",
+    // auth: {
+    //   user: process.env.SMTP_EMAIL,
+    //   pass: process.env.SMTP_PASS,
+    // },
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.SMTP_EMAIL,
       pass: process.env.SMTP_PASS,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   })
   const mailOptions = {
     from: `"Hotelier (Your perfect stay, Is one click away)" <${process.env.SMTP_EMAIL}>`,
