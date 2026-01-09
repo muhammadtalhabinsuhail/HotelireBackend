@@ -1,4 +1,5 @@
-import nodemailer from "nodemailer";
+import axios from "axios";
+import FormData from "form-data";
 
 function welcomeCustomerEmailTemplate({ firstName }) {
   return `
@@ -112,19 +113,32 @@ function welcomeCustomerEmailTemplate({ firstName }) {
 `;
 }
 
-export const sendWelcomeCustomerEmail = async ({ to, firstName }) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+export const sendWelcomeCustomerEmail = async (to, firstName) => {
+  const form = new FormData()
 
-  await transporter.sendMail({
-    from: `"Hotelire" <${process.env.SMTP_EMAIL}>`,
-    to,
-    subject: "Welcome to Hotelire – Start Booking Hotels in Canada",
-    html: welcomeCustomerEmailTemplate({ firstName }),
-  });
-};
+  form.append("from", process.env.MAIL_FROM) // Hotelire <no-reply@mg.hotelire.ca>
+  form.append("to", to)
+  form.append("subject", "Welcome to Hotelire – Start Booking Hotels in Canada")
+  form.append("html", welcomeCustomerEmailTemplate({ firstName }))
+
+  try {
+    await axios.post(
+      `https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`,
+      form,
+      {
+        auth: {
+          username: "api",
+          password: process.env.MAILGUN_API_KEY,
+        },
+        headers: form.getHeaders(),
+        timeout: 10000,
+      }
+    )
+  } catch (error) {
+    console.error(
+      "MAILGUN ERROR:",
+      error.response?.data || error.message
+    )
+    throw new Error("Email sending failed")
+  }
+}

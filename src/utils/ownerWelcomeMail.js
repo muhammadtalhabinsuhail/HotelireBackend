@@ -1,11 +1,12 @@
 // utils/emailTemplates/welcomeHostEmail.js
 // utils/sendMail.js
 
-import nodemailer from "nodemailer";
+import axios from "axios";
+import FormData from "form-data";
 
 
 function welcomeHostEmailTemplate({ firstName, dashboardUrl }) {
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -236,27 +237,32 @@ a:visited, a:hover, a:active {
 }
 
 
+export const sendWelcomeHostEmail = async (to, firstName) => {
+  const form = new FormData()
 
+  form.append("from", process.env.MAIL_FROM) // Hotelire <no-reply@mg.hotelire.ca>
+  form.append("to", to)
+  form.append("subject", "Welcome to Hotelire – Start Hosting Today")
+  form.append("html", welcomeHostEmailTemplate({ firstName, dashboardUrl: `${process.env.FRONTEND_URL}/owner/verification` }))
 
-export const sendWelcomeHostEmail = async ({ to, firstName }) => {
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
+  try {
+    await axios.post(
+      `https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`,
+      form,
+      {
         auth: {
-            user: process.env.SMTP_EMAIL,
-            pass: process.env.SMTP_PASS,
+          username: "api",
+          password: process.env.MAILGUN_API_KEY,
         },
-    });
-
-    await transporter.sendMail({
-        from: `"Hotelire" <${process.env.SMTP_EMAIL}>`,
-        to,
-        subject: "Welcome to Hotelire – Start Hosting Today",
-        html: welcomeHostEmailTemplate({
-            firstName,
-            dashboardUrl: `${process.env.FRONTEND_URL}/owner/verification`,
-        }),
-    });
-};
-
-
-
+        headers: form.getHeaders(),
+        timeout: 10000,
+      }
+    )
+  } catch (error) {
+    console.error(
+      "MAILGUN ERROR:",
+      error.response?.data || error.message
+    )
+    throw new Error("Email sending failed")
+  }
+}
