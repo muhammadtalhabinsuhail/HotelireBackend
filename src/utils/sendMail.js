@@ -808,6 +808,8 @@ export const sendEmail = async (to, code) => {
     greetingTimeout: 10000,
     socketTimeout: 10000,
   })
+
+  
   const mailOptions = {
     from: `"Hotelier (Your perfect stay, Is one click away)" <${process.env.SMTP_EMAIL}>`,
     to,
