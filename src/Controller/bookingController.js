@@ -13,6 +13,16 @@ function toPrismaDate(dateStr) {
   return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0));
 }
 
+  const formatDate = (isoString) => {
+    const date = new Date(isoString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // months 0-based
+    const year = date.getFullYear();
+
+    return `${day}${month}${year}`;
+  };
+
 // This function is called after Stripe payment succeeds
 const createBooking = async (req, res) => {
   try {
@@ -205,8 +215,8 @@ const createBooking = async (req, res) => {
 
 
 
+     const bookingId = `CONF-${newBookingdata.bookingid}-${formatDate(newBookingdata.created_at)}`;
 
-    const bookingId = `CONF-${newBookingdata.bookingid}`;
 
     const total_guests = Number(adults) + Number(children);
 
@@ -236,6 +246,7 @@ const createBooking = async (req, res) => {
         }
       }
     )
+
 
     await sendEmail(
       owner.email,

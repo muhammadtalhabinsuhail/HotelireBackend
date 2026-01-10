@@ -258,7 +258,7 @@ export function customerBookingConfirmedEmailTemplate(
         <div class="booking-box">
           <div class="booking-title">Booking Details</div>
           <p class="booking-text">
-            <strong>Booking ID:</strong> ${bookingId}<br />
+            <strong>Booking ID:</strong> ${bookingId}-<br />
             <strong>Check-in:</strong> ${checkIn}<br />
             <strong>Check-out:</strong> ${checkOut}<br />
             <strong>Guests:</strong> ${guests}
