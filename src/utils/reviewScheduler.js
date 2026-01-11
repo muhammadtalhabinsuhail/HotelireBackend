@@ -37,6 +37,21 @@ export const sendReviewEmailsForCompletedBookings = async () => {
     // Find all completed bookings where:
     // 1. Checkout date has passed
     // 2. Review email hasn't been sent yet (review_requested = false)
+    const result = await prisma.booking.updateMany({
+      where: {
+        checkout_date: {
+          lt: now,
+        },
+        booking_status: {
+          not: "COMPLETED",
+        },
+      },
+      data: {
+        booking_status: "COMPLETED",
+      },
+    });
+
+
     const completedBookings = await prisma.booking.findMany({
       where: {
         booking_status: "COMPLETED",
@@ -59,7 +74,7 @@ export const sendReviewEmailsForCompletedBookings = async () => {
       try {
         // Get or create review record using correct field name
         let review = await prisma.review.findFirst({
-          where: { 
+          where: {
             booking: {
               bookingid: booking.bookingid
             }
@@ -148,7 +163,7 @@ export const sendReviewEmailsForCompletedBookings = async () => {
     }
 
     console.log(`[Review Scheduler] Complete: ${emailsSent} emails sent, ${errors.length} errors`);
-    
+
     return {
       success: true,
       emailsSent,
@@ -168,14 +183,14 @@ export const sendReviewEmailsForCompletedBookings = async () => {
 export const initializeReviewScheduler = () => {
   // Run immediately on startup
   console.log("[Review Scheduler] Initializing on startup...");
-  sendReviewEmailsForCompletedBookings().catch(err => 
+  sendReviewEmailsForCompletedBookings().catch(err =>
     console.error("[Review Scheduler] Startup error:", err)
   );
 
   // Run every hour (3600000 ms)
   setInterval(() => {
     console.log("[Review Scheduler] Running scheduled check...");
-    sendReviewEmailsForCompletedBookings().catch(err => 
+    sendReviewEmailsForCompletedBookings().catch(err =>
       console.error("[Review Scheduler] Scheduled check error:", err)
     );
   }, 3600000); // 1 hour
