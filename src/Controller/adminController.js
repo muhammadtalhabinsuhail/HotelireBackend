@@ -304,9 +304,9 @@ export const getOwnerById = async (req, res) => {
       where: { userid: Number(id) },
       include: {
         ownerinfo: {
-          // include: {
-          //   owner_subscriptions: true,
-          // },
+          include: {
+            owner_subscriptions: true,
+          },
         },
         property: {
           include: {
@@ -360,8 +360,9 @@ export const getOwnerById = async (req, res) => {
       }
     })
 
-    // Subscriptions data
-    const subscriptions = owner.ownerinfo?.is_active
+    // // Subscriptions data
+    // const subscriptions = owner.ownerinfo?.is_active
+const subscriptions = owner.ownerinfo?.owner_subscriptions || []
 
 
     // Correct total bookings for owner's properties
