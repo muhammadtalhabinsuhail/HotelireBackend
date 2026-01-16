@@ -237,7 +237,7 @@ a:visited, a:hover, a:active {
 }
 
 
-export const sendWelcomeHostEmail = async (to, firstName) => {
+export const sendWelcomeHostEmail = async ({to, firstName}) => {
   const form = new FormData()
 
   form.append("from", process.env.MAIL_FROM) // Hotelire <no-reply@mg.hotelire.ca>

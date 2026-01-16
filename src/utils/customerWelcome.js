@@ -113,7 +113,7 @@ function welcomeCustomerEmailTemplate({ firstName }) {
 `;
 }
 
-export const sendWelcomeCustomerEmail = async (to, firstName) => {
+export const sendWelcomeCustomerEmail = async ({ to, firstName }) => {
   const form = new FormData()
 
   form.append("from", process.env.MAIL_FROM) // Hotelire <no-reply@mg.hotelire.ca>

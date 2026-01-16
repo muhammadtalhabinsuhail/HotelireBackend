@@ -51,7 +51,7 @@ const checkEmail = async (req, res) => {
 
     emailCodeStore.set(email, {
       code,
-      expires: Date.now() + 5 * 60 * 1000 // expires in 5 min
+      expires: Date.now() + 30 * 60 * 1000 // expires in 5 min
     });
 
     await sendEmail(email, code);
@@ -233,7 +233,7 @@ const signUp = async (req, res) => {
       return res.status(401).json({ message: "Email not verified yet" });
     }
 
-
+    
     data.isemailverified = true;
 
     const hashedPassword = await bcrypt.hash(data.passwordhash, 10);

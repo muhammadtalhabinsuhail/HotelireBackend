@@ -47,7 +47,7 @@ export const sendEmail = async (to, subject,html) => {
 
     console.log("Mailgun response:", response.data);
   } catch (error) {
-    console.error(
+    console.error(  
       "MAILGUN ERROR:",
       error.response?.data || error.message
     );
