@@ -114,7 +114,7 @@ const getPayoutDetails = async (req, res) => {
             success: true,
             payout: {
                 stripeConnectAccountId: ownerInfo.stripe_connect_id,
-                payoutSchedule: ownerInfo.payout_schedule || "monthly",
+                payoutSchedule: ownerInfo.payout_schedule || "monthly", 
                 minimumPayoutAmount: ownerInfo.minimum_payout_amount || 10,
             },
         });

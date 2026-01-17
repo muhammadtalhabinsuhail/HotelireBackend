@@ -26,6 +26,18 @@ router.get("/status", async (req, res) => {
 
     const account = await stripe.accounts.retrieve(ownerInfo.stripe_connect_id);
 
+    const isFullyConnected =
+      account.details_submitted &&
+      account.charges_enabled &&
+      account.payouts_enabled;
+
+      console.log('cheking connect status', isFullyConnected, account.details_submitted, account.charges_enabled, account.payouts_enabled);
+      
+
+    if (!isFullyConnected) {
+      return res.status(400).json({ error: "Stripe account is not fully connected" });
+    }
+
     // Ledger balance
     const balance = await stripe.balance.retrieve({
       stripeAccount: ownerInfo.stripe_connect_id,
